@@ -8,6 +8,7 @@ services:
       - ./redis-data:/data
     command: redis-server --appendonly yes
   web:
+    image: kthare10/pscheduler-result-archiver:latest
     build: .
     container_name: django-app
     ports:
