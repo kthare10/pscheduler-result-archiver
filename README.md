@@ -36,7 +36,7 @@ View a single entry
 
 ## Quick Start (Docker Compose)
 ```
-git clone https://github.com/your-username/pscheduler-result-archiver.git
+git clone https://github.com/kthare10/pscheduler-result-archiver.git
 cd pscheduler-result-archiver
 docker-compose up --build
 ```
