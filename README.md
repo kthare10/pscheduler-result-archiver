@@ -26,7 +26,7 @@ Send a result:
     "loss": "0%"
   }
 }
-
+```
 ### GET `/`
 List all entries
 
