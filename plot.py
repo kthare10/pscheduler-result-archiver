@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 import os
 import pandas as pd
@@ -9,6 +11,45 @@ import re
 from datetime import datetime, timedelta
 from collections import Counter
 
+LABEL_FONTSIZE = 14
+TITLE_FONTSIZE = 16
+TICK_FONTSIZE = 12
+LEGEND_FONTSIZE = 12
+
+plt.rcParams.update({
+    'axes.titlesize': TITLE_FONTSIZE,
+    'axes.labelsize': LABEL_FONTSIZE,
+    'xtick.labelsize': TICK_FONTSIZE,
+    'ytick.labelsize': TICK_FONTSIZE,
+    'legend.fontsize': LEGEND_FONTSIZE
+})
+
+
+def add_cruise_periods(ax, min_time, max_time):
+    cruise_start = datetime(2025, 4, 10)
+    cruise_upload_only_end = datetime(2025, 4, 14, 23, 59)
+    enhanced_start_1 = datetime(2025, 4, 14)
+    low_bw_test_day = datetime(2025, 4, 17)
+    enhanced_start_2 = datetime(2025, 4, 18)
+    cruise_end = datetime(2025, 4, 21, 23, 59)
+
+    ymax = ax.get_ylim()[1]
+
+    # Pre-cruise
+    ax.axvspan(min_time, cruise_start, color='gray', alpha=0.1)
+    #ax.axvspan(min_time, cruise_start, color='gray', alpha=0.1, label="Pre-Cruise Baseline Testing")
+    #ax.text(cruise_start - timedelta(days=1), ymax * 0.93, 'Baseline Testing', color='gray')
+
+    # Cruise: Upload-only phase
+    ax.axvspan(cruise_start, cruise_upload_only_end, color='lightblue', alpha=0.15)
+    #ax.axvspan(cruise_start, cruise_upload_only_end, color='lightblue', alpha=0.15, label="Cruise Start – Upload-Only")
+    #ax.text(cruise_start + timedelta(days=1), ymax * 0.93, 'Upload-Only', color='blue')
+
+    # Cruise: Enhanced tests enabled (1st phase)
+    ax.axvspan(enhanced_start_1, cruise_end, color='lightgreen', alpha=0.15)
+    #ax.axvspan(enhanced_start_1, cruise_end, color='lightgreen', alpha=0.15, label="Enhanced Tests Enabled")
+    #ax.text(enhanced_start_1 + timedelta(days=0.5), ymax * 0.88, 'Enhanced Testing', color='green')
+
 
 def get_yaxis_granularity(values):
     max_val = max(values) if values else 10
@@ -18,32 +59,37 @@ def get_yaxis_granularity(values):
 
 def plot_time_series(df, ylabel, title, output_path, min_time, max_time):
     plt.figure(figsize=(12, 6))
+    ax = plt.gca()
+
     for label in df['tool'].unique():
         df_label = df[df['tool'] == label]
-        plt.plot(df_label['timestamp'], df_label['value'], marker='o', linestyle='-', label=label)
+        ax.plot(df_label['timestamp'], df_label['value'], marker='o', linestyle='-', label=label)
 
-    plt.xlabel("Time")
-    plt.ylabel(ylabel)
-    plt.title(title)
-    plt.grid(True)
-    plt.xlim(min_time, max_time)
-    plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
+        # Plot and annotate average
+        avg_val = df_label['value'].mean()
+        ax.axhline(avg_val, color='gray', linestyle='--', linewidth=1)
+        ax.text(max_time, avg_val, f'Avg {label}: {avg_val:.2f}', fontsize=10,
+                va='bottom', ha='right', color='gray')
+
+    #add_cruise_periods(ax, min_time, max_time)  # ← Add this line
+
+    ax.set_xlabel("Time")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.grid(True)
+    ax.set_xlim(min_time, max_time)
+    #ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
+    ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
+
     plt.xticks(rotation=45)
-
-    '''
-    max_val, step = get_yaxis_granularity(df['value'].tolist())
-    plt.ylim(0, max_val + step)
-    plt.yticks(np.arange(0, max_val + step, step))
-    '''
-
-    plt.legend()
+    ax.legend()
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
     print(f"Saved plot: {output_path}")
 
 
-def plot_upload_download_per_tool(df_throughput, min_time, max_time, output_dir):
+def plot_upload_download_per_tool(df_throughput, min_time, max_time, output_dir, unit):
     tools = {
         tool.replace("_upload", "").replace("_download", "")
         for tool in df_throughput['tool'].unique()
@@ -64,19 +110,31 @@ def plot_upload_download_per_tool(df_throughput, min_time, max_time, output_dir)
         max_val, step = get_yaxis_granularity(all_vals)
 
         plt.figure(figsize=(12, 6))
+        ax = plt.gca()
+        #add_cruise_periods(ax, min_time, max_time)
         if not df_upload.empty:
             plt.plot(df_upload['timestamp'], df_upload['value'], marker='o', linestyle='-', label='Upload')
+            avg_upload = df_upload['value'].mean()
+            plt.axhline(avg_upload, linestyle='--', color='blue', linewidth=1)
+            plt.text(max_time, avg_upload, f'Avg Upload: {avg_upload:.2f}', fontsize=10, ha='right', va='bottom',
+                     color='blue')
+
         if not df_download.empty:
             plt.plot(df_download['timestamp'], df_download['value'], marker='^', linestyle='-', label='Download')
+            avg_download = df_download['value'].mean()
+            plt.axhline(avg_download, linestyle='--', color='green', linewidth=1)
+            plt.text(max_time, avg_download, f'Avg Download: {avg_download:.2f}', fontsize=10, ha='right', va='bottom',
+                     color='green')
 
         plt.xlabel("Time")
-        plt.ylabel("Throughput (Mbps)")
+        plt.ylabel(f"Throughput ({unit})")
         plt.title(f"Upload vs Download Throughput Over Time ({base_tool})")
         plt.grid(True)
         plt.ylim(0, max_val + step)
         plt.yticks(np.arange(0, max_val + step, step))
         plt.xlim(min_time, max_time)
-        plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
+        #plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
+        plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
         plt.xticks(rotation=45)
         plt.legend()
         filepath = os.path.join(output_dir, f"{base_tool}_upload_download_timeplot.png")
@@ -87,6 +145,10 @@ def plot_upload_download_per_tool(df_throughput, min_time, max_time, output_dir)
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Parse and plot network metrics from Redis.")
+    parser.add_argument("--unit", choices=["Mbps", "Gbps"], default="Mbps",
+                        help="Unit to display throughput (default: Mbps)")
+    args = parser.parse_args()
     r = redis.Redis(host='localhost', port=6379, db=0)
     keys = r.keys('*')
 
@@ -95,8 +157,6 @@ if __name__ == '__main__':
 
     for key in keys:
         raw = r.get(key)
-        if not raw or b"23.134.232.243" in raw:
-            continue
         try:
             data = json.loads(raw)
             category = data.get("category")
@@ -121,9 +181,6 @@ if __name__ == '__main__':
             if "reverse" in filename.lower():
                 tool_name = f"{tool}_download"
 
-            if start_time.month < 4:
-                continue
-
             if category == "throughput":
                 summary = content.get("summary", {}).get("summary") or content.get("summary", {})
                 diags = content.get("diags", "")
@@ -143,10 +200,8 @@ if __name__ == '__main__':
 
                 if summary:
                     t_offset = summary.get("start", 0)
-                    retransmits = summary.get("retransmits") if tool in ["iperf3", "nuttcp"] else None
+                    retransmits = summary.get("retransmits") if tool in ["iperf3"] else None
                     throughput = summary.get("throughput-bits")
-                    if tool == "nuttcp" and int(throughput / 1e6) > 70:
-                        continue
                     timestamp = start_time + timedelta(seconds=t_offset)
 
                     if throughput is not None:
@@ -154,7 +209,7 @@ if __name__ == '__main__':
                             "tool": tool_name,
                             "category": "throughput",
                             "timestamp": timestamp,
-                            "value": throughput / 1e6,
+                            "value": throughput / 1e6 if args.unit == "Mbps" else throughput / 1e9,
                             "unit": "Mbps",
                             "metric": "throughput",
                             "succeeded": succeeded,
@@ -203,9 +258,6 @@ if __name__ == '__main__':
                     total_count = sum(hist.values())
                     avg_latency = sum(float(k) * v for k, v in hist.items()) / total_count
 
-                    if start_time.day <= 14 and avg_latency < 50:
-                        continue
-
                     records.append({
                         "tool": tool,
                         "category": category,
@@ -222,8 +274,6 @@ if __name__ == '__main__':
                     match = re.match(r"PT(\d+(\.\d+)?)S", mean_rtt)
                     if match:
                         rtt_val_sec = float(match.group(1))
-                        if start_time.day <= 14 and (rtt_val_sec * 1000) < 50:
-                            continue
                         records.append({
                             "tool": tool,
                             "category": category,
@@ -267,9 +317,6 @@ if __name__ == '__main__':
                 try:
                     start_time = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ")
                 except ValueError:
-                    continue
-
-                if start_time.month == 4 and start_time.day == 14 and start_time.hour == 17:
                     continue
 
                 download = content.get("download", {})
@@ -363,7 +410,7 @@ if __name__ == '__main__':
     df_latency = df[(df['category'] == 'latency') & (df['succeeded'] == True)]
     df_speed = df[(df['category'] == 'speedtest') & (df['succeeded'] == True)]
 
-    plot_upload_download_per_tool(df_throughput, min_time, max_time, output_dir)
+    plot_upload_download_per_tool(df_throughput, min_time, max_time, output_dir, args.unit)
 
     if not df_rtt.empty:
         plot_time_series(
@@ -390,6 +437,10 @@ if __name__ == '__main__':
             df_m = df_speed[df_speed['metric'] == metric]
             if not df_m.empty:
                 plt.plot(df_m['timestamp'], df_m['value'], marker='o', linestyle='-', label=metric.replace('_', ' ').title())
+                avg_val = df_m['value'].mean()
+                plt.axhline(avg_val, linestyle='--', color='gray', linewidth=1)
+                plt.text(max_time, avg_val, f'{metric.replace("_", " ").title()} Avg: {avg_val:.2f}', fontsize=10,
+                         ha='right', va='bottom', color='gray')
 
         plt.xlabel("Time")
         plt.ylabel("Bandwidth (Mbps)")
@@ -410,6 +461,10 @@ if __name__ == '__main__':
             df_m = df_speed[df_speed['metric'] == metric]
             if not df_m.empty:
                 plt.plot(df_m['timestamp'], df_m['value'], marker='s', linestyle='-', label=metric.replace('_', ' ').title())
+                avg_val = df_m['value'].mean()
+                plt.axhline(avg_val, linestyle='--', color='gray', linewidth=1)
+                plt.text(max_time, avg_val, f'{metric.replace("_", " ").title()} Avg: {avg_val:.2f}', fontsize=10,
+                         ha='right', va='bottom', color='gray')
 
         plt.xlabel("Time")
         plt.ylabel("Latency (ms)")
@@ -424,3 +479,4 @@ if __name__ == '__main__':
         plt.savefig(filepath)
         plt.close()
         print(f"Saved Speedtest latency plot: {filepath}")
+
