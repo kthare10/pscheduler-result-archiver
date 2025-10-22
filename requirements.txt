@@ -1,5 +1,8 @@
-Django>=4.0
-redis
-gunicorn
-matplotlib
-pandas
+connexion[flask]==2.14.2
+swagger-ui-bundle==0.0.9
+python-dateutil>=2.8.2
+waitress
+psycopg[binary]
+psycopg_pool
+sqlalchemy
+numpy

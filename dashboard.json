@@ -1,0 +1,451 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": { "limit": 100, "matchAny": false, "tags": [], "type": "dashboard" },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 80 } ] },
+          "unit": " Mbps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 10,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "hideZeros": false, "mode": "multi", "sort": "none" }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name='throughput_mbps'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Throughput (Mbps)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 80 } ] },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 11,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "hideZeros": false, "mode": "multi", "sort": "none" }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ' retransmits]') AS metric\nFROM ps_test_results\nWHERE metric_name='retransmits'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Retransmits (count)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 80 } ] },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 12,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "hideZeros": false, "mode": "multi", "sort": "none" }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name IN ('avg_latency')\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Latency (ms)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 80 } ] },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "^Minimum\\s-\\s" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } },
+              { "id": "custom.lineStyle", "value": "solid" },
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "^Mean\\s-\\s" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } },
+              { "id": "custom.lineStyle", "value": "solid" },
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "^Max\\s-\\s" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } },
+              { "id": "custom.lineStyle", "value": "dashed" },
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 17,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "hideZeros": false, "mode": "multi", "sort": "none" }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(\n\t\tCASE metric_name\n\t\t\tWHEN 'min_rtt_ms' THEN 'Minimum - '\n\t\t\tWHEN 'mean_rtt_ms' THEN 'Mean - '\n\t\t\tWHEN 'max_rtt_ms' THEN 'Max - '\n\t\t\tELSE ''\n\t\tEND,\n\t\tsrc,' → ',dst,' (',tool,')',\n\t\tCASE WHEN aux ? 'ip_version' THEN concat(' - IPv', aux->>'ip_version') ELSE '' END\n\t) AS metric\nFROM ps_test_results\nWHERE metric_name IN ('min_rtt_ms','mean_rtt_ms','max_rtt_ms')\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "RTT (ms)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 80 } ] },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 14,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "hideZeros": false, "mode": "multi", "sort": "none" }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name='loss_pct'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Packet Loss (%)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "always",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 80 } ] },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 15,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "hideZeros": false, "mode": "multi", "sort": "none" }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name='hop_count'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Traceroute Hop Count",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "footer": { "reducers": [] },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 80 } ] },
+          "unit": "none"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Destination" }, "properties": [ { "id": "custom.width", "value": 90 } ] },
+          { "matcher": { "id": "byName", "options": "Hop Count" }, "properties": [ { "id": "custom.width", "value": 85 } ] },
+          { "matcher": { "id": "byName", "options": "time" }, "properties": [ { "id": "custom.width", "value": 155 } ] },
+          { "matcher": { "id": "byName", "options": "Source" }, "properties": [ { "id": "custom.width", "value": 61 } ] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 24 },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [ { "desc": false, "displayName": "Route (IP sequence)" } ]
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n\t$__time(r.ts),\n\tr.src AS \"Source\",\n\tr.dst AS \"Destination\",\n\tr.hop_count AS \"Hop Count\",\n\tr.route_str AS \"Route (IP sequence)\"\nFROM (\n\tSELECT\n\t\tMIN(ts) AS ts,\n\t\trun_id,\n\t\tsrc,\n\t\tdst,\n\t\tSTRING_AGG(hop_ip, ' → ' ORDER BY hop_idx) AS route_str,\n\t\tCOUNT(*) AS hop_count\n\tFROM ps_trace_hops\n\tWHERE $__timeFilter(ts)\n\t\tAND (COALESCE('${src}','')='' OR src='${src}')\n\t\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tGROUP BY run_id, src, dst\n) r\nORDER BY time DESC\nLIMIT 500;",
+          "refId": "A"
+        }
+      ],
+      "title": "Unique Traceroutes Observed",
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": "ship", "value": "ship" },
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+        "label": "Source",
+        "name": "src",
+        "options": [],
+        "query": "SELECT DISTINCT src AS __text, src AS __value FROM ps_test_results ORDER BY 1;",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": { "text": "shore", "value": "shore" },
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+        "label": "Destination",
+        "name": "dst",
+        "options": [],
+        "query": "SELECT DISTINCT dst AS __text, dst AS __value FROM ps_test_results WHERE (COALESCE('${src}','')='' OR src='${src}') ORDER BY 1;",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": { "text": "forward", "value": "forward" },
+        "label": "Direction",
+        "name": "direction",
+        "options": [
+          { "selected": true, "text": "forward", "value": "forward" },
+          { "selected": false, "text": "reverse", "value": "reverse" }
+        ],
+        "query": "forward,reverse",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "pscheduler-result-archiver (Pairs)",
+  "uid": "psra-pairs",
+  "version": 7
+}

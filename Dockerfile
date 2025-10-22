@@ -1,18 +1,32 @@
-FROM python:3.11
+FROM python:3.13.0-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+LABEL maintainer="Komal Thareja <komal.thareja@gmail.com>"
 
-RUN apt-get update && apt-get install -y netcat-openbsd && apt-get clean
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# OS deps
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends cron && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# 1) Install Python deps first (cache-friendly)
+COPY requirements.txt /usr/src/app/requirements.txt
+RUN python -m pip install --upgrade pip && \
+    python -m pip install --no-cache-dir -r requirements.txt
 
-COPY entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "json_viewer.wsgi:application", "--bind", "0.0.0.0:8000"]
+# 2) Copy project and install package
+COPY archiver /usr/src/app/archiver
+COPY pyproject.toml README.md LICENSE /usr/src/app/
+RUN python -m pip install --no-cache-dir /usr/src/app
+
+# 3) Entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+EXPOSE 3500
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["archiver"]

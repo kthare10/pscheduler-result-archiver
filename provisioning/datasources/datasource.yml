@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: pscheduler-postgres
+    type: postgres
+    access: proxy
+    isDefault: true
+    uid: cf1s1g3beeccge
+    url: timescaledb:5432 # Uses the Docker service name as the host
+    database: perfsonar
+    user: grafana_writer
+    password: change_me
+    jsonData:
+      sslmode: disable
+      timescaledb: true
+    version: 1
+    editable: true

@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: 'PScheduler Archiver'
+    orgId: 1
+    folder: 'PScheduler' # Creates a folder named 'PScheduler'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards # Grafana container path for the JSON file
