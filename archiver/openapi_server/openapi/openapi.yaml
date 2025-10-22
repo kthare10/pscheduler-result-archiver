@@ -8,7 +8,7 @@ servers:
 - description: Production
   url: https://archiver.example.org
 - description: Local development
-  url: http://localhost:8080
+  url: http://localhost:8080/api/
 security:
 - bearerAuth: []
 - apiKeyAuth: []
