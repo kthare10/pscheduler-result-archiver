@@ -49,7 +49,7 @@ def main():
             app = connexion.App(__name__, specification_dir='openapi_server/openapi/')
             app.json = encoder.JSONEncoder
             app.add_api('openapi.yaml', arguments={'title': 'Result Archiver API'},
-                        pythonic_params=True, base_path='/')
+                        pythonic_params=True)
 
             # Start up the server to expose the metrics.
             waitress.serve(app.app, port=int(port), threads=8, expose_tracebacks=True)

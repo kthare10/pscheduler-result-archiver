@@ -79,6 +79,7 @@ class LoggingConfig:
 @dataclass
 class RuntimeConfig:
     port: int = 3500
+    bearer_token: str = ""
 
 
 # -------------------- database --------------------
@@ -184,6 +185,7 @@ class Config:
         runtime_raw = data.get("runtime") or {}
         runtime = RuntimeConfig(
             port=int(runtime_raw.get("port") or 3500),
+            bearer_token=runtime_raw.get("bearer_token", "abcd1234")
         )
 
         # logging

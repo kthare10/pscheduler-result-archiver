@@ -6,9 +6,9 @@ info:
   version: 1.0.0
 servers:
 - description: Production
-  url: https://archiver.example.org
+  url: https://archiver.example.org/ps/
 - description: Local development
-  url: http://localhost:8080/api/
+  url: http://localhost:8080/ps/
 security:
 - bearerAuth: []
 - apiKeyAuth: []

@@ -22,7 +22,7 @@ class TestOperationsController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/health',
+            '/ps/health',
             method='GET',
             headers=headers)
         self.assert200(response,
@@ -38,7 +38,7 @@ class TestOperationsController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/schema',
+            '/ps/schema',
             method='GET',
             headers=headers)
         self.assert200(response,

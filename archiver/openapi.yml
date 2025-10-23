@@ -7,9 +7,9 @@ info:
     and performs idempotent UPSERT by (run_id, metric_name). Stores compact raw details in `aux`.
 
 servers:
-  - url: https://archiver.example.org
+  - url: https://archiver.example.org/ps/
     description: Production
-  - url: http://localhost:8080/api/
+  - url: http://localhost:8080/ps/
     description: Local development
 
 tags:

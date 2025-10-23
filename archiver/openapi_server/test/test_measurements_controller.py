@@ -27,7 +27,7 @@ class TestMeasurementsController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/measurements/clock',
+            '/ps/measurements/clock',
             method='POST',
             headers=headers,
             data=json.dumps(measurement_request),
@@ -47,7 +47,7 @@ class TestMeasurementsController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/measurements/latency',
+            '/ps/measurements/latency',
             method='POST',
             headers=headers,
             data=json.dumps(measurement_request),
@@ -67,7 +67,7 @@ class TestMeasurementsController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/measurements/mtu',
+            '/ps/measurements/mtu',
             method='POST',
             headers=headers,
             data=json.dumps(measurement_request),
@@ -87,7 +87,7 @@ class TestMeasurementsController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/measurements/rtt',
+            '/ps/measurements/rtt',
             method='POST',
             headers=headers,
             data=json.dumps(measurement_request),
@@ -107,7 +107,7 @@ class TestMeasurementsController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/measurements/throughput',
+            '/ps/measurements/throughput',
             method='POST',
             headers=headers,
             data=json.dumps(measurement_request),
@@ -127,7 +127,7 @@ class TestMeasurementsController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/measurements/trace',
+            '/ps/measurements/trace',
             method='POST',
             headers=headers,
             data=json.dumps(measurement_request),

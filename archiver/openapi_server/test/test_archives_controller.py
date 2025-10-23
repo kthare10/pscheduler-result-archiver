@@ -23,7 +23,7 @@ class TestArchivesController(BaseTestCase):
             'Authorization': 'Bearer special-key',
         }
         response = self.client.open(
-            '/archives/{run_id}'.format(run_id='run_id_example'),
+            '/ps/archives/{run_id}'.format(run_id='run_id_example'),
             method='GET',
             headers=headers)
         self.assert200(response,

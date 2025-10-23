@@ -1,5 +1,7 @@
 from typing import List
 
+from archiver.common.globals import get_globals
+
 
 def info_from_bearerAuth(token):
     """
@@ -12,6 +14,8 @@ def info_from_bearerAuth(token):
     :return: Decoded token information or None if token is invalid
     :rtype: dict | None
     """
+    if token is None or token != get_globals().config.runtime.bearer_token:
+        return None
     return {'uid': 'user_id'}
 
 
@@ -28,5 +32,7 @@ def info_from_apiKeyAuth(api_key, required_scopes):
     :return: Information attached to provided api_key or None if api_key is invalid or does not allow access to called API
     :rtype: dict | None
     """
+    if api_key is None or api_key != get_globals().config.runtime.bearer_token:
+        return None
     return {'uid': 'user_id'}
 
