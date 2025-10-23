@@ -9,6 +9,7 @@ from dataclasses import dataclass, asdict
 from typing import Any, Dict, Literal, Mapping, MutableMapping, Optional, Tuple, Union
 
 import requests
+import urllib3
 from requests import Session, Response
 
 
@@ -87,6 +88,7 @@ class ArchiverClient:
         user_agent: str = "archiver-archiver_client/1.0.0",
         retries: int = 2,
         retry_backoff_seconds: float = 0.5,
+        verify: Union[bool, str] = True,   # <-- NEW
     ):
         self.base_url = base_url.rstrip("/")
         self.bearer_token = bearer_token
@@ -96,6 +98,11 @@ class ArchiverClient:
         self.user_agent = user_agent
         self.retries = max(0, retries)
         self.retry_backoff_seconds = retry_backoff_seconds
+        self.verify = verify  # <-- NEW
+
+        # Optional: silence warnings if TLS verification is disabled
+        if self.verify is False:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     # ---------- public: Operations ----------
 
@@ -219,7 +226,6 @@ class ArchiverClient:
         if headers:
             hdrs.update(headers)
 
-        # Simple retry loop for transient network/5xx
         last_exc: Optional[Exception] = None
         for attempt in range(self.retries + 1):
             try:
@@ -230,14 +236,13 @@ class ArchiverClient:
                     json=json_body,
                     headers=hdrs,
                     timeout=self.timeout,
+                    verify=self.verify,   # <-- NEW
                 )
                 if 200 <= resp.status_code < 300:
-                    # Some 200/201 responses may have empty bodies; normalize to {}
                     if resp.content and resp.headers.get("Content-Type", "").startswith("application/json"):
                         return resp.json()  # type: ignore[return-value]
                     return {}
                 else:
-                    # Try to parse server error payload
                     payload = None
                     try:
                         payload = resp.json()
@@ -254,7 +259,7 @@ class ArchiverClient:
                     time.sleep(self.retry_backoff_seconds * (2 ** attempt))
                     continue
                 raise ArchiverError(f"Request failed after {self.retries + 1} attempts: {e}") from e
-        # Shouldn’t reach; safeguard:
+
         if last_exc:
             raise ArchiverError(f"Request failed: {last_exc}") from last_exc
         raise ArchiverError("Unknown archiver_client error")
