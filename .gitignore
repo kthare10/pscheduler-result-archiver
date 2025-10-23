@@ -174,3 +174,5 @@ cython_debug/
 .pypirc
 redis-data
 .idea
+grafana_data
+tsdb_data

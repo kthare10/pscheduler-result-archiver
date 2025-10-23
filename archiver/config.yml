@@ -1,0 +1,48 @@
+runtime:
+  port: 3500
+
+logging:
+  log-directory: logs
+  log-file: archiver.log
+  metrics-log-file: metrics.log
+  log-level: DEBUG
+  log-retain: 5
+  log-size: 5000000
+  logger: archiver
+
+database:
+  # Preferred: set ARCHIVER_DSN in the environment. Example:
+  #   ARCHIVER_DSN=postgresql+psycopg://grafana_writer:***@db:5432/perfsonar
+  use-env-dsn: true
+
+  # Optional fallback (used only if use-env-dsn=false or env var is missing)
+  dsn: postgresql+psycopg://grafana_writer:change_me@timescaledb:5432/perfsonar
+
+  # Or, if you prefer to build DSN from discrete fields (leave dsn empty):
+  host: timescaledb 
+  port: 5432
+  user: grafana_writer
+  password: change_me         # recommend overriding via env ARCHIVER_DB_PASSWORD
+  database: perfsonar
+
+  # SSL options (applied when building DSN from fields)
+  ssl:
+    mode: disable             # disable | require | verify-ca | verify-full
+    root-cert: ""             # path to root cert (when verify-*)
+
+  # SQLAlchemy pool settings
+  pool:
+    size: 10                  # pool_size
+    max-overflow: 20          # extra connections beyond pool size
+    timeout-s: 30             # connect/recycle timeout
+    recycle-s: 1800           # recycle connections periodically
+
+  # ORM/tables
+  create-tables: false        # true in dev to auto-create (Base.metadata.create_all)
+
+  # Timescale (optional, for reference – managed by migrations usually)
+  timescale:
+    hypertable: ps_test_results
+    ensure-hypertable: false  # run create_hypertable(...) if needed (migrations preferred)
+    retention-days: 180
+    compress-after-days: 7

@@ -1,0 +1,1058 @@
+openapi: 3.0.0
+info:
+  description: |
+    Accepts single or bulk pScheduler JSON payloads (iperf3, ping, owamp/twping, trace, mtu, etc.) and performs idempotent UPSERT by (run_id, metric_name). Stores compact raw details in `aux`.
+  title: pscheduler-result-archiver
+  version: 1.0.0
+servers:
+- description: Production
+  url: https://archiver.example.org/ps/
+- description: Local development
+  url: http://localhost:8080/ps/
+security:
+- bearerAuth: []
+- apiKeyAuth: []
+tags:
+- description: Submit raw pScheduler test measurements for archival and analysis.
+  name: Measurements
+- description: Retrieve or list archived measurements and metadata.
+  name: Archives
+- description: "Service health, schema discovery, and metadata endpoints."
+  name: Operations
+paths:
+  /archives/{run_id}:
+    get:
+      operationId: get_measurement
+      parameters:
+      - explode: false
+        in: path
+        name: run_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Optional request correlation id
+        explode: false
+        in: header
+        name: X-Request-ID
+        required: false
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Measurement"
+          description: Run found
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_403_forbidden"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_404_not_found"
+          description: Run not found
+      security:
+      - bearerAuth: []
+      summary: Fetch a previously ingested run
+      tags:
+      - Archives
+      x-openapi-router-controller: archiver.openapi_server.controllers.archives_controller
+  /health:
+    get:
+      operationId: get_health
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/getHealth_200_response"
+          description: Service is healthy
+      summary: Health/Liveness
+      tags:
+      - Operations
+      x-openapi-router-controller: archiver.openapi_server.controllers.operations_controller
+  /measurements/clock:
+    post:
+      operationId: create_clock_measurement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeasurementRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: OK (created or resized)
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_400_bad_request"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_403_forbidden"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_404_not_found"
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_500_internal_server_error"
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Ingest a pScheduler clock result (skew/offset)
+      tags:
+      - Measurements
+      x-openapi-router-controller: archiver.openapi_server.controllers.measurements_controller
+  /measurements/latency:
+    post:
+      operationId: create_latency_measurement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeasurementRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: OK (created or resized)
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_400_bad_request"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_403_forbidden"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_404_not_found"
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_500_internal_server_error"
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: "Ingest pScheduler latency/owamp result (one/two-way delay, jitter,\
+        \ loss)"
+      tags:
+      - Measurements
+      x-openapi-router-controller: archiver.openapi_server.controllers.measurements_controller
+  /measurements/mtu:
+    post:
+      operationId: create_mtu_measurement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeasurementRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: OK (created or resized)
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_400_bad_request"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_403_forbidden"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_404_not_found"
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_500_internal_server_error"
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Ingest pScheduler MTU result
+      tags:
+      - Measurements
+      x-openapi-router-controller: archiver.openapi_server.controllers.measurements_controller
+  /measurements/rtt:
+    post:
+      operationId: create_rtt_measurement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeasurementRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: OK (created or resized)
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_400_bad_request"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_403_forbidden"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_404_not_found"
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_500_internal_server_error"
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Ingest pScheduler RTT/ping result
+      tags:
+      - Measurements
+      x-openapi-router-controller: archiver.openapi_server.controllers.measurements_controller
+  /measurements/throughput:
+    post:
+      operationId: create_throughput_measurement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeasurementRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: OK (created or resized)
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_400_bad_request"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_403_forbidden"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_404_not_found"
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_500_internal_server_error"
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Ingest pScheduler throughput (iperf3/nuttcp/ethr) result
+      tags:
+      - Measurements
+      x-openapi-router-controller: archiver.openapi_server.controllers.measurements_controller
+  /measurements/trace:
+    post:
+      operationId: create_trace_measurement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeasurementRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: OK (created or resized)
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_400_bad_request"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_403_forbidden"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_404_not_found"
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_500_internal_server_error"
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Ingest pScheduler Trace result
+      tags:
+      - Measurements
+      x-openapi-router-controller: archiver.openapi_server.controllers.measurements_controller
+  /schema:
+    get:
+      operationId: get_schema
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/getSchema_200_response"
+          description: Known metric names and units (non-exhaustive)
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+      security:
+      - bearerAuth: []
+      summary: Metric catalog / minimal schema
+      tags:
+      - Operations
+      x-openapi-router-controller: archiver.openapi_server.controllers.operations_controller
+components:
+  parameters:
+    upsertParam:
+      description: "If false, perform insert-only and fail on duplicates (single)\
+        \ or mark conflicts (bulk)"
+      explode: true
+      in: query
+      name: upsert
+      required: false
+      schema:
+        default: true
+        type: boolean
+      style: form
+    runIdParam:
+      explode: false
+      in: path
+      name: run_id
+      required: true
+      schema:
+        type: string
+      style: simple
+    requestIdHeader:
+      description: Optional request correlation id
+      explode: false
+      in: header
+      name: X-Request-ID
+      required: false
+      schema:
+        type: string
+      style: simple
+    idempotencyKeyHeader:
+      description: Optional key to treat identical requests as idempotent on transport
+        layer
+      explode: false
+      in: header
+      name: Idempotency-Key
+      required: false
+      schema:
+        type: string
+      style: simple
+  schemas:
+    Measurement:
+      additionalProperties: false
+      example:
+        run_id: run_id
+        dst: dst
+        src: src
+        aux: "{}"
+        metrics:
+        - unit: unit
+          name: name
+          value: 6.027456183070403
+        - unit: unit
+          name: name
+          value: 6.027456183070403
+        test_type: test_type
+        tool: tool
+        ts: 2000-01-23T04:56:07.000+00:00
+        status: status
+        duration_s: 0.8008281904610115
+      properties:
+        ts:
+          description: Measurement timestamp (UTC)
+          format: date-time
+          title: ts
+          type: string
+        run_id:
+          description: Unique run identifier (used for idempotency)
+          title: run_id
+          type: string
+        test_type:
+          description: throughput | ping | owamp | twping | trace | mtu | clock |
+            ...
+          title: test_type
+          type: string
+        tool:
+          description: iperf3 | ping | owping | twping | nuttcp | ethr | traceroute
+            | ...
+          title: tool
+          type: string
+        src:
+          description: Source host or IP
+          title: src
+          type: string
+        dst:
+          description: Destination host/IP/URL
+          title: dst
+          type: string
+        status:
+          description: success | failed | partial | unknown
+          title: status
+          type: string
+        duration_s:
+          description: Test duration in seconds
+          title: duration_s
+          type: number
+        metrics:
+          items:
+            $ref: "#/components/schemas/Metric"
+          minItems: 1
+          title: metrics
+          type: array
+        aux:
+          description: Raw/compact details for drilldown (stored as JSONB)
+          title: aux
+          type: object
+      required:
+      - metrics
+      - run_id
+      - test_type
+      - tool
+      - ts
+      title: Measurement
+      type: object
+    NodeRef:
+      additionalProperties: false
+      example:
+        ip: ip
+        name: name
+      properties:
+        ip:
+          description: IPv4/IPv6
+          title: ip
+          type: string
+        name:
+          description: Optional display name
+          title: name
+          type: string
+      required:
+      - ip
+      title: NodeRef
+      type: object
+    MeasurementRequest:
+      additionalProperties: false
+      example:
+        run_id: run_id
+        dst:
+          ip: ip
+          name: name
+        src:
+          ip: ip
+          name: name
+        raw:
+          key: ""
+        ts: 2000-01-23T04:56:07.000+00:00
+        direction: forward
+      properties:
+        ts:
+          description: Optional override; defaults to now
+          format: date-time
+          title: ts
+          type: string
+        run_id:
+          description: Optional; server will generate if absent
+          title: run_id
+          type: string
+        src:
+          $ref: "#/components/schemas/NodeRef"
+        dst:
+          $ref: "#/components/schemas/NodeRef"
+        direction:
+          description: Traffic direction label (used for throughput/latency plotting)
+          enum:
+          - forward
+          - reverse
+          title: direction
+          type: string
+        raw:
+          additionalProperties: true
+          description: Raw pScheduler result blob for this test
+          title: raw
+          type: object
+      required:
+      - dst
+      - raw
+      - src
+      title: MeasurementRequest
+      type: object
+    Metric:
+      additionalProperties: false
+      example:
+        unit: unit
+        name: name
+        value: 6.027456183070403
+      properties:
+        name:
+          description: "Metric name (e.g., throughput_mbps, rtt_ms, loss_pct, mtu_bytes,\
+            \ hop_count)"
+          title: name
+          type: string
+        value:
+          title: value
+          type: number
+        unit:
+          description: mbps | ms | pct | bytes | count | ...
+          title: unit
+          type: string
+      required:
+      - name
+      - value
+      title: Metric
+      type: object
+    status_200_ok_single:
+      properties:
+        size:
+          default: 1
+          type: integer
+        status:
+          default: 200
+          type: integer
+        type:
+          type: string
+      type: object
+    status_200_ok_no_content:
+      example:
+        data:
+        - details: details
+          message: No Content
+        - details: details
+          message: No Content
+        size: 0
+        type: no_content
+        status: 6
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/status_200_ok_no_content_data"
+          title: data
+          type: array
+        type:
+          default: no_content
+          title: type
+          type: string
+        size:
+          default: 1
+          title: size
+          type: integer
+        status:
+          default: 200
+          title: status
+          type: integer
+      title: status_200_ok_no_content
+      type: object
+    status_200_ok_paginated:
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        size:
+          type: integer
+        status:
+          default: 200
+          type: integer
+        total:
+          type: integer
+        type:
+          type: string
+      type: object
+    status_400_bad_request:
+      example:
+        errors:
+        - size: 1
+          details: details
+          message: Bad Request
+          type: error
+          status: 5
+        - size: 1
+          details: details
+          message: Bad Request
+          type: error
+          status: 5
+      properties:
+        errors:
+          items:
+            $ref: "#/components/schemas/status_400_bad_request_errors"
+          title: errors
+          type: array
+      title: status_400_bad_request
+      type: object
+    status_401_unauthorized:
+      example:
+        size: 1
+        type: error
+        errors:
+        - details: details
+          message: Unauthorized
+        - details: details
+          message: Unauthorized
+        status: 5
+      properties:
+        errors:
+          items:
+            $ref: "#/components/schemas/status_401_unauthorized_errors"
+          title: errors
+          type: array
+        type:
+          default: error
+          title: type
+          type: string
+        size:
+          default: 1
+          title: size
+          type: integer
+        status:
+          default: 401
+          title: status
+          type: integer
+      title: status_401_unauthorized
+      type: object
+    status_403_forbidden:
+      example:
+        size: 5
+        type: error
+        errors:
+        - details: details
+          message: Forbidden
+        - details: details
+          message: Forbidden
+        status: 2
+      properties:
+        errors:
+          items:
+            $ref: "#/components/schemas/status_403_forbidden_errors"
+          title: errors
+          type: array
+        type:
+          default: error
+          title: type
+          type: string
+        size:
+          default: 1
+          title: size
+          type: integer
+        status:
+          default: 403
+          title: status
+          type: integer
+      title: status_403_forbidden
+      type: object
+    status_409_conflict:
+      properties:
+        errors:
+          items:
+            $ref: "#/components/schemas/status_409_conflict_errors"
+          type: array
+        type:
+          default: error
+          type: string
+        size:
+          default: 1
+          type: integer
+        status:
+          default: 409
+          type: integer
+      type: object
+    status_404_not_found:
+      example:
+        size: 7
+        type: error
+        errors:
+        - details: details
+          message: Not Found
+        - details: details
+          message: Not Found
+        status: 9
+      properties:
+        errors:
+          items:
+            $ref: "#/components/schemas/status_404_not_found_errors"
+          title: errors
+          type: array
+        type:
+          default: error
+          title: type
+          type: string
+        size:
+          default: 1
+          title: size
+          type: integer
+        status:
+          default: 404
+          title: status
+          type: integer
+      title: status_404_not_found
+      type: object
+    status_500_internal_server_error:
+      example:
+        size: 5
+        type: error
+        errors:
+        - details: details
+          message: Internal Server Error
+        - details: details
+          message: Internal Server Error
+        status: 2
+      properties:
+        errors:
+          items:
+            $ref: "#/components/schemas/status_500_internal_server_error_errors"
+          title: errors
+          type: array
+        type:
+          default: error
+          title: type
+          type: string
+        size:
+          default: 1
+          title: size
+          type: integer
+        status:
+          default: 500
+          title: status
+          type: integer
+      title: status_500_internal_server_error
+      type: object
+    status_200_ok_no_content_data:
+      example:
+        details: details
+        message: No Content
+      properties:
+        message:
+          default: No Content
+          type: string
+        details:
+          type: object
+      title: status_200_ok_no_content_data
+      type: object
+    status_400_bad_request_errors:
+      example:
+        size: 1
+        details: details
+        message: Bad Request
+        type: error
+        status: 5
+      properties:
+        message:
+          default: Bad Request
+          title: message
+          type: string
+        details:
+          title: details
+          type: string
+        type:
+          default: error
+          title: type
+          type: string
+        size:
+          default: 1
+          title: size
+          type: integer
+        status:
+          default: 400
+          title: status
+          type: integer
+      title: status_400_bad_request_errors
+      type: object
+    status_401_unauthorized_errors:
+      example:
+        details: details
+        message: Unauthorized
+      properties:
+        message:
+          default: Unauthorized
+          title: message
+          type: string
+        details:
+          title: details
+          type: string
+      title: status_401_unauthorized_errors
+      type: object
+    status_403_forbidden_errors:
+      example:
+        details: details
+        message: Forbidden
+      properties:
+        message:
+          default: Forbidden
+          title: message
+          type: string
+        details:
+          title: details
+          type: string
+      title: status_403_forbidden_errors
+      type: object
+    status_409_conflict_errors:
+      properties:
+        message:
+          default: Conflict
+          title: message
+          type: string
+        details:
+          title: details
+          type: string
+      title: status_409_conflict_errors
+      type: object
+      example: null
+    status_404_not_found_errors:
+      example:
+        details: details
+        message: Not Found
+      properties:
+        message:
+          default: Not Found
+          title: message
+          type: string
+        details:
+          title: details
+          type: string
+      title: status_404_not_found_errors
+      type: object
+    status_500_internal_server_error_errors:
+      example:
+        details: details
+        message: Internal Server Error
+      properties:
+        message:
+          default: Internal Server Error
+          title: message
+          type: string
+        details:
+          title: details
+          type: string
+      title: status_500_internal_server_error_errors
+      type: object
+    getHealth_200_response:
+      additionalProperties: false
+      example:
+        version: version
+        db: ok
+        status: ok
+      properties:
+        status:
+          enum:
+          - ok
+          title: status
+          type: string
+        db:
+          enum:
+          - ok
+          - degraded
+          - down
+          title: db
+          type: string
+        version:
+          title: version
+          type: string
+      required:
+      - db
+      - status
+      - version
+      title: getHealth_200_response
+      type: object
+    getSchema_200_response_metrics_inner:
+      additionalProperties: false
+      example:
+        unit: unit
+        name: name
+        description: description
+      properties:
+        name:
+          title: name
+          type: string
+        unit:
+          title: unit
+          type: string
+        description:
+          title: description
+          type: string
+      title: getSchema_200_response_metrics_inner
+      type: object
+    getSchema_200_response:
+      additionalProperties: false
+      example:
+        metrics:
+        - unit: unit
+          name: name
+          description: description
+        - unit: unit
+          name: name
+          description: description
+      properties:
+        metrics:
+          items:
+            $ref: "#/components/schemas/getSchema_200_response_metrics_inner"
+          title: metrics
+          type: array
+      required:
+      - metrics
+      title: getSchema_200_response
+      type: object
+  securitySchemes:
+    bearerAuth:
+      scheme: bearer
+      type: http
+      x-bearerInfoFunc: archiver.openapi_server.controllers.security_controller.info_from_bearerAuth
+    apiKeyAuth:
+      in: header
+      name: X-API-Key
+      type: apiKey
+      x-apikeyInfoFunc: archiver.openapi_server.controllers.security_controller.info_from_apiKeyAuth
