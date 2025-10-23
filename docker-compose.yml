@@ -6,7 +6,7 @@ services:
       - POSTGRES_DB=perfsonar
       - POSTGRES_USER=grafana_writer
       - POSTGRES_PASSWORD=change_me
-    ports: ["5432:5432"]
+    #ports: ["5432:5432"]
     volumes:
       - ./tsdb_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +19,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
-    ports: ["3000:3000"]
+    #ports: ["3000:3000"]
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -45,7 +45,7 @@ services:
     depends_on:
       - grafana
     restart: always
-    ports: ["3500:3500"]
+    #ports: ["3500:3500"]
     environment:
       - APP_CONFIG_PATH=/etc/archiver/config/config.yml
     volumes:
