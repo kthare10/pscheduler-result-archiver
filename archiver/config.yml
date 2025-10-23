@@ -1,5 +1,6 @@
 runtime:
   port: 3500
+  bearer_token: changeme
 
 logging:
   log-directory: logs
