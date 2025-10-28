@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # --- Detect IP type (management connectivity heuristic) ---
-if ping6 -c 1 -W 1 google.com &> /dev/null; then
-    man_ip_type=ipv6
+if command -v ping6 >/dev/null 2>&1; then
+    ping6 -c 1 -W 1 google.com &>/dev/null && man_ip_type=ipv6 || man_ip_type=ipv4
 else
-    man_ip_type=ipv4
+    ping -6 -c 1 -W 1 google.com &>/dev/null && man_ip_type=ipv6 || man_ip_type=ipv4
 fi
 
 # --- Detect OS and version ---
@@ -111,6 +111,76 @@ configure_docker_ipv6() {
     echo "Docker IPv6 configured."
 }
 
+# ---------------- MTU-SAFE HELPERS (avoid 'mtu greater than device maximum') ----------------
+
+is_skippable_iface() {
+  local d="$1"
+  [[ "$d" == "lo" ]] && return 0
+  [[ "$d" == docker* || "$d" == veth* || "$d" == br-* || "$d" == cni* || "$d" == flannel* ]] && return 0
+  [[ "$d" == cilium* || "$d" == wg* || "$d" == tun* || "$d" == tap* || "$d" == virbr* || "$d" == vmnet* ]] && return 0
+  [[ "$d" == nm-* || "$d" == ovs-system || "$d" == ovs-* || "$d" == ppp* || "$d" == team* || "$d" == bond* ]] && return 0
+  return 1
+}
+
+get_max_mtu() {
+  local d="$1" max=""
+  if [[ -r "/sys/class/net/$d/dev_max_mtu" ]]; then
+    max=$(cat "/sys/class/net/$d/dev_max_mtu" 2>/dev/null || echo "")
+  fi
+  if [[ -z "$max" ]]; then
+    max=$(ip -d link show "$d" 2>/dev/null | awk '/maxmtu/ {for(i=1;i<=NF;i++){if($i~"maxmtu"){print $(i+1); exit}}}')
+  fi
+  [[ "$max" =~ ^[0-9]+$ ]] && echo "$max" || echo ""
+}
+
+get_min_mtu() {
+  local d="$1" min=""
+  if [[ -r "/sys/class/net/$d/dev_min_mtu" ]]; then
+    min=$(cat "/sys/class/net/$d/dev_min_mtu" 2>/dev/null || echo "")
+  fi
+  if [[ -z "$min" ]]; then
+    min=$(ip -d link show "$d" 2>/dev/null | awk '/minmtu/ {for(i=1;i<=NF;i++){if($i~"minmtu"){print $(i+1); exit}}}')
+  fi
+  [[ "$min" =~ ^[0-9]+$ ]] && echo "$min" || echo ""
+}
+
+apply_mtu_if_supported() {
+  local d="$1" target="${2:-9000}"
+  local max min cur
+  max=$(get_max_mtu "$d")
+  min=$(get_min_mtu "$d")
+  cur=$(cat "/sys/class/net/$d/mtu" 2>/dev/null || echo "")
+
+  # If we can’t determine limits, don’t touch it
+  if [[ -z "$max" || -z "$min" || -z "$cur" ]]; then
+    echo "[mtu] $d: unknown limits; skipping"
+    return 0
+  fi
+
+  # Clamp target to device range
+  if (( target > max )); then
+    echo "[mtu] $d: requested $target > max $max; clamping to $max"
+    target="$max"
+  fi
+  if (( target < min )); then
+    echo "[mtu] $d: requested $target < min $min; clamping to $min"
+    target="$min"
+  fi
+
+  # Only change if different
+  if (( target != cur )); then
+    if sudo ip link set dev "$d" mtu "$target" 2>/dev/null; then
+      echo "[mtu] $d: set MTU $cur -> $target"
+    else
+      echo "[mtu] $d: failed to set MTU to $target; leaving at $cur"
+    fi
+  else
+    echo "[mtu] $d: already $cur; ok"
+  fi
+}
+
+# ---------------- End MTU-SAFE HELPERS ----------------
+
 host_tune() {
     echo "Applying host tuning settings..."
     sudo tee -a /etc/sysctl.conf >/dev/null <<'EOL'
@@ -120,17 +190,22 @@ net.core.wmem_max = 536870912
 # increase Linux autotuning TCP buffer limit to 64MB
 net.ipv4.tcp_rmem = 4096 87380 536870912
 net.ipv4.tcp_wmem = 4096 65536 536870912
-# recommended default congestion control is htcp or bbr
+# recommended default congestion control is bbr
 net.ipv4.tcp_congestion_control = bbr
-# recommended for hosts with jumbo frames enabled
+# enable MTU probing so TCP adapts if path MTU is smaller
 net.ipv4.tcp_mtu_probing = 1
-# recommended to enable 'fair queueing'
+# enable fair queueing
 net.core.default_qdisc = fq
 EOL
     sudo sysctl --system || true
 
-    for dev in $(basename -a /sys/class/net/*); do
-        sudo ip link set dev "$dev" mtu 9000 || true
+    # Safely apply MTU up to 9000 only where supported
+    for devpath in /sys/class/net/*; do
+        dev=$(basename "$devpath")
+        is_skippable_iface "$dev" && { echo "[mtu] $dev: skipping (virtual/loopback)"; continue; }
+        state=$(cat "/sys/class/net/$dev/operstate" 2>/dev/null || echo "unknown")
+        [[ "$state" == "down" ]] && { echo "[mtu] $dev: down; skipping"; continue; }
+        apply_mtu_if_supported "$dev" 9000
     done
 }
 
@@ -139,7 +214,6 @@ activate_docker_group_now() {
     echo "[*] Activating docker group for ${TARGET_USER} without logout…"
     # If interactive TTY, replace current shell with a login shell as TARGET_USER
     if [[ -t 1 ]]; then
-        # This ensures the current session immediately picks up new group membership
         exec su -l "$TARGET_USER"
     fi
 
