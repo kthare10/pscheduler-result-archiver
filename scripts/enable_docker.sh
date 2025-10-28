@@ -286,4 +286,4 @@ esac
 host_tune
 
 # <<< key addition to activate docker group now >>>
-activate_docker_group_now
+#activate_docker_group_now
