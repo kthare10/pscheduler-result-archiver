@@ -13,14 +13,21 @@ source /etc/os-release
 os_id=$ID
 os_version_id=$(echo "${VERSION_ID:-}" | cut -d'.' -f1)
 
-echo "Detected OS: $os_id, Version: $os_version_id (man_ip_type=${man_ip_type})"
+# Determine the real login user (works when run via sudo)
+TARGET_USER="${SUDO_USER:-$USER}"
+
+echo "Detected OS: $os_id, Version: $os_version_id (man_ip_type=${man_ip_type}, target_user=${TARGET_USER})"
 
 install_ubuntu_common() {
     sudo apt-get update -y
     sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release jq
     curl -fsSL https://get.docker.com | sudo sh
     sudo mkdir -p /etc/docker
-    sudo usermod -aG docker ubuntu
+
+    # add target user to docker group (create group if missing)
+    sudo groupadd -f docker
+    sudo usermod -aG docker "$TARGET_USER"
+
     sudo apt-get install -y openvswitch-switch
     sudo systemctl enable --now openvswitch-switch
     sudo apt-get install -y build-essential wget tcpdump iftop python3-pip
@@ -38,7 +45,7 @@ ensure_pip39() {
         if ! echo "$PATH" | grep -q "/usr/local/bin"; then
             echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
             export PATH="/usr/local/bin:$PATH"
-            echo "Added /usr/local/bin to PATH. Please restart your terminal or run 'source ~/.bashrc'"
+            echo "Added /usr/local/bin to PATH. You may 'source ~/.bashrc' if not re-execing below."
         fi
     fi
 }
@@ -48,9 +55,12 @@ install_rocky_common() {
     sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
     sudo dnf install -y docker-ce docker-ce-cli containerd.io jq
     sudo mkdir -p /etc/docker
-    sudo systemctl start docker
-    sudo systemctl enable docker
-    sudo usermod -aG docker rocky
+    sudo systemctl enable --now docker
+
+    # add target user to docker group (create group if missing)
+    sudo groupadd -f docker
+    sudo usermod -aG docker "$TARGET_USER"
+
     sudo dnf install -y firewalld git
     sudo dnf install -y python3-devel gcc gcc-c++ redhat-rpm-config
     sudo dnf install -y expect
@@ -58,22 +68,6 @@ install_rocky_common() {
     sudo firewall-cmd --zone=public --add-port=5201/tcp --permanent
     sudo firewall-cmd --zone=public --add-port=5201/udp --permanent
     sudo firewall-cmd --reload
-}
-
-# --- Re-exec into a shell with new docker group (no logout required) ---
-activate_docker_group_now() {
-    echo "[*] Activating docker group for ${TARGET_USER} without logout…"
-    # If interactive TTY, replace current shell with a login shell as TARGET_USER
-    if [[ -t 1 ]]; then
-        # This ensures the current session immediately picks up new group membership
-        exec su -l "$TARGET_USER"
-    fi
-
-    # Non-interactive fallback: give immediate socket access for this user (until next restart)
-    if [[ -S /var/run/docker.sock ]]; then
-        echo "[*] Non-interactive mode detected; applying temporary ACL to docker.sock"
-        sudo setfacl -m "u:${TARGET_USER}:rw" /var/run/docker.sock || true
-    fi
 }
 
 # --- Configure Docker for IPv6 if management IP is IPv6 ---
@@ -92,7 +86,6 @@ configure_docker_ipv6() {
     else
         echo '{}' | sudo tee /etc/docker/daemon.json >/dev/null
     fi
-
 
     # Default DNS servers (Cloudflare + Google IPv6)
     DEFAULT_DNS='["2606:4700:4700::1111", "2001:4860:4860::8888"]'
@@ -139,6 +132,22 @@ EOL
     for dev in $(basename -a /sys/class/net/*); do
         sudo ip link set dev "$dev" mtu 9000 || true
     done
+}
+
+# --- Re-exec into a shell with new docker group (no logout required) ---
+activate_docker_group_now() {
+    echo "[*] Activating docker group for ${TARGET_USER} without logout…"
+    # If interactive TTY, replace current shell with a login shell as TARGET_USER
+    if [[ -t 1 ]]; then
+        # This ensures the current session immediately picks up new group membership
+        exec su -l "$TARGET_USER"
+    fi
+
+    # Non-interactive fallback: give immediate socket access for this user (until next restart)
+    if [[ -S /var/run/docker.sock ]]; then
+        echo "[*] Non-interactive mode detected; applying temporary ACL to docker.sock"
+        sudo setfacl -m "u:${TARGET_USER}:rw" /var/run/docker.sock || true
+    fi
 }
 
 # --- Main execution logic ---
@@ -201,4 +210,6 @@ case "$os_id" in
 esac
 
 host_tune
+
+# <<< key addition to activate docker group now >>>
 activate_docker_group_now
