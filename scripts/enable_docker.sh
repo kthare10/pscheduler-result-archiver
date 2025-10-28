@@ -212,16 +212,8 @@ EOL
 # --- Re-exec into a shell with new docker group (no logout required) ---
 activate_docker_group_now() {
     echo "[*] Activating docker group for ${TARGET_USER} without logout…"
-    # If interactive TTY, replace current shell with a login shell as TARGET_USER
-    if [[ -t 1 ]]; then
-        exec su -l "$TARGET_USER"
-    fi
-
-    # Non-interactive fallback: give immediate socket access for this user (until next restart)
-    if [[ -S /var/run/docker.sock ]]; then
-        echo "[*] Non-interactive mode detected; applying temporary ACL to docker.sock"
-        sudo setfacl -m "u:${TARGET_USER}:rw" /var/run/docker.sock || true
-    fi
+    sudo usermod -aG docker $(whoami)
+    newgrp docker
 }
 
 # --- Main execution logic ---
