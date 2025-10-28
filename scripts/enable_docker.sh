@@ -201,4 +201,4 @@ case "$os_id" in
 esac
 
 host_tune
-activate_docker_group_no
+activate_docker_group_now
