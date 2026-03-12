@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Iterable, List, Tuple, Optional, Any, Dict
 from datetime import datetime
 
-from sqlalchemy import create_engine, update, text, select, desc
+from sqlalchemy import create_engine, text, select, desc
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -104,49 +104,22 @@ class DatabaseManager:
 
     def _upsert_rows(self, s: Session, rows: list[Dict[str, Any]]) -> UpsertCounts:
         """
-        True UPSERT using PostgreSQL. We probe with DO NOTHING (returning) to count inserts,
-        and issue UPDATE for existing rows. Conflict target must include (run_id, metric_name, ts).
+        Bulk UPSERT using PostgreSQL INSERT ... ON CONFLICT DO UPDATE.
+        All rows are sent in a single statement for much better performance.
         """
-        inserted = 0
-        updated = 0
-
-        for r in rows:
-            # Attempt insert; count as inserted if it returns a row.
-            probe = (
-                pg_insert(PsTestResult.__table__)
-                .values(**r)
-                .on_conflict_do_nothing()
-                .returning(PsTestResult.__table__.c.run_id)
-            )
-            probe_res = s.execute(probe).fetchone()
-            if probe_res:
-                inserted += 1
-            else:
-                # Row exists for (run_id, metric_name, ts) -> update value & labels
-                upd = (
-                    update(PsTestResult)
-                    .where(
-                        (PsTestResult.run_id == r["run_id"]) &
-                        (PsTestResult.metric_name == r["metric_name"]) &
-                        (PsTestResult.ts == r["ts"])
-                    )
-                    .values(
-                        # DO NOT change keys (run_id, metric_name, ts)
-                        test_type=r["test_type"],
-                        tool=r["tool"],
-                        src=r["src"],
-                        dst=r["dst"],
-                        status=r["status"],
-                        duration_s=r["duration_s"],
-                        metric_value=r["metric_value"],
-                        unit=r["unit"],
-                        aux=r["aux"],
-                    )
-                )
-                res = s.execute(upd)
-                updated += res.rowcount or 0
-
-        return UpsertCounts(inserted=inserted, updated=updated)
+        _update_cols = {
+            "test_type", "tool", "src", "dst", "status",
+            "duration_s", "metric_value", "unit", "aux",
+        }
+        stmt = pg_insert(PsTestResult.__table__).values(rows)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["run_id", "metric_name", "ts"],
+            set_={col: stmt.excluded[col] for col in _update_cols},
+        )
+        result = s.execute(stmt)
+        # rowcount reflects total affected rows (inserts + updates)
+        total = result.rowcount or 0
+        return UpsertCounts(inserted=total, updated=0)
 
     def _insert_only_rows(self, s: Session, rows: list[Dict[str, Any]]) -> UpsertCounts:
         """

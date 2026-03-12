@@ -1,17 +1,18 @@
+import logging
 import re
 import uuid
 from datetime import datetime, timezone
 
 import connexion
-from typing import Dict, List, Optional, Any
-
-from numpy.ma.core import min_val
+from typing import Callable, Dict, List, Optional, Any
 
 from archiver.common.globals import get_globals
 from archiver.db.database_manager import DatabaseManager
 from archiver.openapi_server.models import Metric, Measurement
 from archiver.openapi_server.models.measurement_request import MeasurementRequest  # noqa: E501
 from archiver.response.cors_response import cors_400, cors_200_no_content, cors_500
+
+logger = logging.getLogger(__name__)
 
 DBM = DatabaseManager.from_config(config=get_globals().config)
 
@@ -36,13 +37,21 @@ def _parse_iso(s: Optional[str]) -> Optional[datetime]:
     if not isinstance(s, str):
         return None
     try:
-        # allow both with/without timezone; fallback to naive as UTC
         dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt
     except Exception:
         return None
+
+def _parse_iso8601_duration_seconds(s: str) -> Optional[float]:
+    """Parse 'PTxS' ISO 8601 duration strings to float seconds."""
+    if isinstance(s, str) and s.startswith("PT") and s.endswith("S"):
+        try:
+            return float(s[2:-1])
+        except (ValueError, TypeError):
+            return None
+    return None
 
 def _mk_measurement(body: Dict[str, Any], test_type: str, tool: str, metrics: List[Metric]) -> Measurement:
     src, dst = body["src"], body["dst"]
@@ -53,7 +62,6 @@ def _mk_measurement(body: Dict[str, Any], test_type: str, tool: str, metrics: Li
     if isinstance(body.get("raw"), dict) and body["raw"].get("succeeded") is False:
         status = "failed"
 
-    # attach useful labels into aux
     aux = body.get("raw") or {}
     aux = {**aux, "src": src, "dst": dst}
     if direction:
@@ -72,31 +80,41 @@ def _mk_measurement(body: Dict[str, Any], test_type: str, tool: str, metrics: Li
     )
 
 
-def create_clock_measurement(body):  # noqa: E501
-    """Ingest a pScheduler clock result (skew/offset)
+def _ingest(body, extract_fn: Callable[[MeasurementRequest, Dict[str, Any]], tuple]):
+    """Common ingestion pipeline shared by all measurement types.
 
-     # noqa: E501
-
-    :param measurement_request: 
-    :type measurement_request: dict | bytes
-
-    :rtype: Union[Status200OkNoContent, Tuple[Status200OkNoContent, int], Tuple[Status200OkNoContent, int, Dict[str, str]]
+    extract_fn receives (measurement_request, raw) and returns
+    (test_type, tool, metrics, post_fn_or_None) where post_fn is called
+    with (meas, body) after _mk_measurement for any post-processing
+    (e.g. trace hops).
     """
     measurement_request = body
     if connexion.request.is_json:
-        measurement_request = MeasurementRequest.from_dict(connexion.request.get_json())  # noqa: E501
+        measurement_request = MeasurementRequest.from_dict(connexion.request.get_json())
 
     err = _ensure_ips(measurement_request)
     if err:
         return cors_400()
 
     raw = measurement_request.raw
-    diff_s = None
-    if isinstance(raw.get("difference"), str) and raw["difference"].startswith("PT") and raw["difference"].endswith("S"):
-        try:
-            diff_s = float(raw["difference"][2:-1])
-        except Exception:
-            pass
+    test_type, tool, metrics, post_fn = extract_fn(measurement_request, raw)
+
+    meas = _mk_measurement(body, test_type=test_type, tool=tool, metrics=metrics)
+    if post_fn:
+        post_fn(meas, body)
+
+    try:
+        DBM.upsert_run(meas, upsert=True)
+        return cors_200_no_content(details={"run_id": meas.run_id})
+    except Exception:
+        logger.exception("Failed to upsert %s measurement", test_type)
+        return cors_500(details="Internal server error")
+
+
+# ---- metric extractors (one per test type) ----
+
+def _extract_clock(_req, raw):
+    diff_s = _parse_iso8601_duration_seconds(raw.get("difference", ""))
     offset_s = (raw.get("remote") or {}).get("offset")
 
     metrics: List[Metric] = []
@@ -104,34 +122,11 @@ def create_clock_measurement(body):  # noqa: E501
         metrics.append(_m("clock_diff_ms", diff_s * 1000.0, "ms"))
     if offset_s is not None:
         metrics.append(_m("clock_offset_s", float(offset_s), "s"))
-    #if not metrics:
-    #    metrics.append(_m("clock_result", 1.0 if raw.get("succeeded", True) else 0.0, "count"))
 
-    meas = _mk_measurement(body, test_type="clock", tool="pscheduler-clock", metrics=metrics)
-    try:
-        c = DBM.upsert_run(meas, upsert=True)
-        return cors_200_no_content(details={"run_id": meas.run_id})
-    except Exception as e:
-        return cors_500(details=str(e))
+    return "clock", "pscheduler-clock", metrics, None
 
-def create_latency_measurement(body):  # noqa: E501
-    """Ingest pScheduler latency/owamp result (one/two-way delay, jitter, loss)
 
-     # noqa: E501
-
-    :param measurement_request: 
-    :type measurement_request: dict | bytes
-
-    :rtype: Union[Status200OkNoContent, Tuple[Status200OkNoContent, int], Tuple[Status200OkNoContent, int, Dict[str, str]]
-    """
-    measurement_request = body
-    if connexion.request.is_json:
-        measurement_request = MeasurementRequest.from_dict(connexion.request.get_json())  # noqa: E501
-    err = _ensure_ips(measurement_request)
-    if err:
-        return cors_400()
-
-    raw = measurement_request.raw
+def _extract_latency(_req, raw):
     avg_latency = None
     hist = raw.get("histogram-latency", {})
     if hist:
@@ -142,32 +137,10 @@ def create_latency_measurement(body):  # noqa: E501
     if avg_latency is not None:
         metrics.append(_m("avg_latency", float(avg_latency), "ms"))
 
-    meas = _mk_measurement(body, test_type="latency", tool="owamp/twping", metrics=metrics)
-    try:
-        c = DBM.upsert_run(meas, upsert=True)
-        return cors_200_no_content(details={"run_id": meas.run_id})
-    except Exception as e:
-        return cors_500(details=str(e))
+    return "latency", "owamp/twping", metrics, None
 
-def create_mtu_measurement(body):  # noqa: E501
-    """Ingest pScheduler MTU result
 
-     # noqa: E501
-
-    :param measurement_request: 
-    :type measurement_request: dict | bytes
-
-    :rtype: Union[Status200OkNoContent, Tuple[Status200OkNoContent, int], Tuple[Status200OkNoContent, int, Dict[str, str]]
-    """
-    measurement_request = body
-    if connexion.request.is_json:
-        measurement_request = MeasurementRequest.from_dict(connexion.request.get_json())  # noqa: E501
-
-    err = _ensure_ips(measurement_request)
-    if err:
-        return cors_400()
-
-    raw = measurement_request.raw
+def _extract_mtu(_req, raw):
     mtu = raw.get("mtu") or (raw.get("results") or {}).get("mtu")
     metrics: List[Metric] = []
     if mtu is not None:
@@ -175,204 +148,119 @@ def create_mtu_measurement(body):  # noqa: E501
     if not metrics:
         metrics.append(_m("mtu_result", 1.0 if raw.get("succeeded", True) else 0.0, "count"))
 
-    meas = _mk_measurement(body, test_type="mtu", tool="mtu", metrics=metrics)
-    try:
-        c = DBM.upsert_run(meas, upsert=True)
-        return cors_200_no_content(details={"run_id": meas.run_id})
-    except Exception as e:
-        return cors_500(details=str(e))
+    return "mtu", "mtu", metrics, None
 
 
-def create_rtt_measurement(body):  # noqa: E501
-    """Ingest pScheduler RTT/ping result
-
-     # noqa: E501
-
-    :param measurement_request: 
-    :type measurement_request: dict | bytes
-
-    :rtype: Union[Status200OkNoContent, Tuple[Status200OkNoContent, int], Tuple[Status200OkNoContent, int, Dict[str, str]]
-    """
-    measurement_request = body
-    if connexion.request.is_json:
-        measurement_request = MeasurementRequest.from_dict(connexion.request.get_json())  # noqa: E501
-    err = _ensure_ips(measurement_request)
-    if err:
-        return cors_400()
-
-    raw = measurement_request.raw
-
-    mean_rtt = raw.get("mean")
-    mean_rtt_val_sec = None
-    if mean_rtt:
-        match = re.match(r"PT(\d+(\.\d+)?)S", mean_rtt)
-        if match:
-            mean_rtt_val_sec = float(match.group(1))
-    max_rtt = raw.get("max")
-    max_rtt_val_sec = None
-    if max_rtt:
-        match = re.match(r"PT(\d+(\.\d+)?)S", max_rtt)
-        if match:
-            max_rtt_val_sec = float(match.group(1))
-    min_rtt = raw.get("min")
-    min_rtt_val_sec = None
-    if min_rtt:
-        match = re.match(r"PT(\d+(\.\d+)?)S", min_rtt)
-        if match:
-            min_rtt_val_sec = float(match.group(1))
-
-    loss_pct = raw.get("loss")
-
+def _extract_rtt(_req, raw):
     metrics: List[Metric] = []
-    if mean_rtt_val_sec is not None:
-        metrics.append(_m("mean_rtt_ms", float(mean_rtt_val_sec) * 1000, "ms"))
-    if max_rtt_val_sec is not None:
-        metrics.append(_m("max_rtt_ms", float(max_rtt_val_sec) * 1000, "ms"))
-    if min_rtt_val_sec is not None:
-        metrics.append(_m("min_rtt_ms", float(min_rtt_val_sec) * 1000, "ms"))
+    for field, metric_name in [("mean", "mean_rtt_ms"), ("max", "max_rtt_ms"), ("min", "min_rtt_ms")]:
+        val_s = _parse_iso8601_duration_seconds(raw.get(field, ""))
+        if val_s is not None:
+            metrics.append(_m(metric_name, val_s * 1000, "ms"))
+    loss_pct = raw.get("loss")
     if loss_pct is not None:
         metrics.append(_m("loss_pct", float(loss_pct), "pct"))
 
-    meas = _mk_measurement(body, test_type="rtt", tool="ping", metrics=metrics)
-    try:
-        c = DBM.upsert_run(meas, upsert=True)
-        return cors_200_no_content(details={"run_id": meas.run_id})
-    except Exception as e:
-        return cors_500(details=str(e))
+    return "rtt", "ping", metrics, None
 
-def create_throughput_measurement(body):  # noqa: E501
-    """Ingest pScheduler throughput (iperf3/nuttcp/ethr) result
 
-     # noqa: E501
-
-    :param measurement_request: 
-    :type measurement_request: dict | bytes
-
-    :rtype: Union[Status200OkNoContent, Tuple[Status200OkNoContent, int], Tuple[Status200OkNoContent, int, Dict[str, str]]
-    """
-    measurement_request = body
-    if connexion.request.is_json:
-        measurement_request = MeasurementRequest.from_dict(connexion.request.get_json())  # noqa: E501
-    err = _ensure_ips(measurement_request)
-    if err:
-        return cors_400()
-
-    raw = measurement_request.raw
+def _extract_throughput(_req, raw):
     metrics: List[Metric] = []
 
-    # 1) Try standard iperf3 shape first
     end = raw.get("end", {}) if isinstance(raw, dict) else {}
-    sum_recv = end.get("sum_received") or {}
     sum_sent = end.get("sum_sent") or {}
-    bits_total = None
     retrans = sum_sent.get("retransmits")
 
-    # 2) If missing, derive bps from summary: { start, end, summary: { throughput-bits, retransmits? } }
     summary = raw.get("summary") or {}
     summary_summary = summary.get("summary") or {}
     bits_total = summary_summary.get("throughput-bits") or summary_summary.get("throughput_bits")
-    # try to pick retransmits from summary if available
     if retrans is None:
         r = summary_summary.get("retransmits")
         if r is not None:
             try:
                 retrans = float(r)
-            except Exception:
+            except (ValueError, TypeError):
                 pass
 
-    # metrics assembly
     if bits_total is not None:
         metrics.append(_m("throughput_mbps", float(bits_total) / 1e6, "mbps"))
     if retrans is not None:
         try:
             metrics.append(_m("retransmits", float(retrans), "count"))
-        except Exception:
+        except (ValueError, TypeError):
             pass
-    #if not metrics:
-    #    metrics.append(_m("throughput_result", 1.0 if raw.get("succeeded", True) else 0.0, "count"))
 
-    meas = _mk_measurement(body, test_type="throughput", tool="iperf3/nuttcp/ethr", metrics=metrics)
-    try:
-        c = DBM.upsert_run(meas, upsert=True)
-        return cors_200_no_content(details={"run_id": meas.run_id})
-    except Exception as e:
-        return cors_500(details=str(e))
+    return "throughput", "iperf3/nuttcp/ethr", metrics, None
 
 
-def create_trace_measurement(body):  # noqa: E501
-    """Ingest pScheduler Trace result
-
-     # noqa: E501
-
-    :param measurement_request: 
-    :type measurement_request: dict | bytes
-
-    :rtype: Union[Status200OkNoContent, Tuple[Status200OkNoContent, int], Tuple[Status200OkNoContent, int, Dict[str, str]]
-    """
-    measurement_request = body
-    if connexion.request.is_json:
-        measurement_request = MeasurementRequest.from_dict(connexion.request.get_json())  # noqa: E501
-    err = _ensure_ips(measurement_request)
-    if err:
-        return cors_400()
-
-    raw = measurement_request.raw
+def _extract_trace(_req, raw):
     paths = raw.get("paths") or []
 
-    # Support both shapes: [ [ {ip,rtt}, ... ] ]  or  [ {ip,rtt}, ... ]
     first_path = []
     if paths and isinstance(paths[0], list):
         first_path = paths[0]
     elif paths and isinstance(paths[0], dict):
         first_path = paths
 
-    # Compute hop_count
     hop_count = len(first_path)
 
-    # Flatten hops with index and rtt_ms if available
     hops_flat = []
     hop_ips = []
     for idx, hop in enumerate(first_path, start=1):
         ip = hop.get("ip")
         rtt_ms = None
         rtt = hop.get("rtt")
-        # handle ISO8601 PTxxS or numeric seconds
-        if isinstance(rtt, str) and rtt.startswith("PT") and rtt.endswith("S"):
-            try:
-                rtt_ms = float(rtt[2:-1]) * 1000.0
-            except Exception:
-                rtt_ms = None
+        if isinstance(rtt, str):
+            val = _parse_iso8601_duration_seconds(rtt)
+            if val is not None:
+                rtt_ms = val * 1000.0
         elif isinstance(rtt, (int, float)):
-            # assume seconds
             rtt_ms = float(rtt) * 1000.0
         if ip:
             hop_ips.append(ip)
         hops_flat.append({"idx": idx, "ip": ip, "rtt_ms": rtt_ms})
 
-    metrics = (
-        [_m("hop_count", float(hop_count), "count")]
-        #if hop_count
-        #else [_m("trace_result", 1.0 if raw.get("succeeded", True) else 0.0, "count")]
-    )
+    metrics = [_m("hop_count", float(hop_count), "count")]
 
-    # Build measurement (this will merge into aux)
-    meas = _mk_measurement(body, test_type="trace", tool="traceroute", metrics=metrics)
+    def _post_trace(meas, _body):
+        aux = meas.aux or {}
+        aux["hops_flat"] = hops_flat
+        aux["hop_ips"] = hop_ips
+        meas.aux = aux
+        try:
+            DBM.upsert_trace_hops(
+                ts=meas.ts, run_id=meas.run_id,
+                src=meas.src, dst=meas.dst,
+                hops_flat=hops_flat,
+            )
+        except Exception:
+            logger.exception("Failed to upsert trace hops for run_id=%s", meas.run_id)
 
-    # Inject our flat views into aux for easy querying
-    aux = meas.aux or {}
-    aux["hops_flat"] = hops_flat          # [{idx, ip, rtt_ms}, ...]
-    aux["hop_ips"] = hop_ips              # ["10.0.0.1", "10.0.0.2", ...]
-    meas.aux = aux
+    return "trace", "traceroute", metrics, _post_trace
 
-    try:
-        c = DBM.upsert_run(meas, upsert=True)
-        DBM.upsert_trace_hops(
-            ts=meas.ts,
-            run_id=meas.run_id,
-            src=meas.src,
-            dst=meas.dst,
-            hops_flat=hops_flat
-        )
-        return cors_200_no_content(details={"run_id": meas.run_id})
-    except Exception as e:
-        return cors_500(details=str(e))
+
+# ---- public endpoint handlers (auto-routed by Connexion) ----
+
+def create_clock_measurement(body):  # noqa: E501
+    """Ingest a pScheduler clock result (skew/offset)"""
+    return _ingest(body, _extract_clock)
+
+def create_latency_measurement(body):  # noqa: E501
+    """Ingest pScheduler latency/owamp result (one/two-way delay, jitter, loss)"""
+    return _ingest(body, _extract_latency)
+
+def create_mtu_measurement(body):  # noqa: E501
+    """Ingest pScheduler MTU result"""
+    return _ingest(body, _extract_mtu)
+
+def create_rtt_measurement(body):  # noqa: E501
+    """Ingest pScheduler RTT/ping result"""
+    return _ingest(body, _extract_rtt)
+
+def create_throughput_measurement(body):  # noqa: E501
+    """Ingest pScheduler throughput (iperf3/nuttcp/ethr) result"""
+    return _ingest(body, _extract_throughput)
+
+def create_trace_measurement(body):  # noqa: E501
+    """Ingest pScheduler Trace result"""
+    return _ingest(body, _extract_trace)

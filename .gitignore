@@ -176,3 +176,6 @@ redis-data
 .idea
 grafana_data
 tsdb_data
+.env
+certs/
+logs/

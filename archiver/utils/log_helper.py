@@ -35,10 +35,7 @@ class LogHelper:
     def make_logger(*, log_dir: Path = ".", log_file: str, log_level, log_retain: int, log_size: int, logger: str,
                     log_format: str = None):
         """
-        Detects the path and level for the log file from the actor config and sets
-        up a logger. Instead of detecting the path and/or level from the
-        config, a custom path and/or level for the log file can be passed as
-        optional arguments.
+        Set up a logger with rotating file handler and console output.
 
        :param log_dir: Log directory
        :param log_file
@@ -50,7 +47,6 @@ class LogHelper:
        :return: logging.Logger object
         """
         log_path = log_dir / log_file
-        print(log_path)
 
         if log_path is None:
             raise RuntimeError('The log file path must be specified in config or passed as an argument')
@@ -58,7 +54,6 @@ class LogHelper:
         if log_level is None:
             log_level = logging.INFO
 
-        # Set up the root logger
         log = logging.getLogger(logger)
         log.setLevel(log_level)
         default_log_format = \
@@ -68,24 +63,19 @@ class LogHelper:
 
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
+        # Rotating file handler
         file_handler = RotatingFileHandler(log_path, backupCount=int(log_retain), maxBytes=int(log_size))
         file_handler.addFilter(LogHelper.thread_id_filter)
         file_handler.setFormatter(logging.Formatter(default_log_format))
         log.addHandler(file_handler)
 
-        console_log = logging.getLogger()
+        # Console handler (visible in Docker logs via stdout)
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.CRITICAL)
-        console_log.addHandler(console_handler)
+        console_handler.setLevel(log_level)
+        console_handler.addFilter(LogHelper.thread_id_filter)
+        console_handler.setFormatter(logging.Formatter(default_log_format))
+        log.addHandler(console_handler)
 
-        #logging.basicConfig(handlers=[file_handler], format=log_format, force=True)
-        #file_handler.addFilter(LogHelper.thread_id_filter)
-
-        # Disable console logging to prevent /var partition from filling up with container logs
-        console_log = logging.getLogger()
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.CRITICAL)
-        console_log.addHandler(console_handler)
         return log
 
     @staticmethod

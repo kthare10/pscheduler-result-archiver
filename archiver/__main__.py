@@ -52,7 +52,7 @@ def main():
                         pythonic_params=True)
 
             # Start up the server to expose the metrics.
-            waitress.serve(app.app, port=int(port), threads=8, expose_tracebacks=True)
+            waitress.serve(app.app, port=int(port), threads=8, expose_tracebacks=False)
 
             while True:
                 time.sleep(0.0001)

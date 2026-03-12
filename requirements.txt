@@ -1,8 +1,8 @@
 connexion[flask]==2.14.2
 swagger-ui-bundle==0.0.9
-python-dateutil>=2.8.2
-waitress
-psycopg[binary]
-psycopg_pool
-sqlalchemy
-numpy
+python-dateutil>=2.8.2,<3.0
+waitress>=3.0.0,<4.0
+psycopg[binary]>=3.1,<4.0
+psycopg_pool>=3.1,<4.0
+sqlalchemy>=2.0,<3.0
+pyyaml>=6.0,<7.0

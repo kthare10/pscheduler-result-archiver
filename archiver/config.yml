@@ -1,6 +1,6 @@
 runtime:
   port: 3500
-  bearer_token: changeme
+  bearer_token: ${ARCHIVER_BEARER_TOKEN}  # REQUIRED: set via environment variable
 
 logging:
   log-directory: logs
@@ -17,13 +17,13 @@ database:
   use-env-dsn: true
 
   # Optional fallback (used only if use-env-dsn=false or env var is missing)
-  dsn: postgresql+psycopg://grafana_writer:change_me@timescaledb:5432/perfsonar
+  dsn: ""  # leave empty; set ARCHIVER_DSN env var or use discrete fields below
 
   # Or, if you prefer to build DSN from discrete fields (leave dsn empty):
-  host: timescaledb 
+  host: timescaledb
   port: 5432
   user: grafana_writer
-  password: change_me         # recommend overriding via env ARCHIVER_DB_PASSWORD
+  password: ""                # REQUIRED: set via env ARCHIVER_DB_PASSWORD
   database: perfsonar
 
   # SSL options (applied when building DSN from fields)

@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_DB=perfsonar
       - POSTGRES_USER=grafana_writer
-      - POSTGRES_PASSWORD=change_me
+      - POSTGRES_PASSWORD=${ARCHIVER_DB_PASSWORD:?Set ARCHIVER_DB_PASSWORD in .env or environment}
     #ports: ["5432:5432"]
     volumes:
       - ./tsdb_data:/var/lib/postgresql/data
@@ -22,8 +22,9 @@ services:
     #ports: ["3000:3000"]
     user: "472:0"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env or environment}
+      - ARCHIVER_DB_PASSWORD=${ARCHIVER_DB_PASSWORD}
     # Ensure Grafana waits until the database service reports healthy
     depends_on:
       timescaledb:
@@ -48,6 +49,8 @@ services:
     #ports: ["3500:3500"]
     environment:
       - APP_CONFIG_PATH=/etc/archiver/config/config.yml
+      - ARCHIVER_DB_PASSWORD=${ARCHIVER_DB_PASSWORD:?Set ARCHIVER_DB_PASSWORD}
+      - ARCHIVER_BEARER_TOKEN=${ARCHIVER_BEARER_TOKEN:?Set ARCHIVER_BEARER_TOKEN}
     volumes:
       - ./archiver/config.yml:/etc/archiver/config/config.yml
       - ./logs/:/var/log/archiver

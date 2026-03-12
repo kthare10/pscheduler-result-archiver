@@ -1,3 +1,5 @@
+import logging
+
 import connexion
 from typing import Dict
 from typing import Tuple
@@ -6,6 +8,8 @@ from typing import Union
 from sqlalchemy import text, select
 
 from archiver.common.globals import get_globals
+
+logger = logging.getLogger(__name__)
 from archiver.db.database_manager import DatabaseManager
 from archiver.openapi_server.models.get_health200_response import GetHealth200Response  # noqa: E501
 from archiver.openapi_server.models.get_schema200_response import GetSchema200Response  # noqa: E501
@@ -25,8 +29,9 @@ def _db_health() -> tuple[str, str | None]:
         with DBM.SessionLocal() as s:
             s.execute(text("SELECT 1"))
         return "ok", None
-    except Exception as e:
-        return "down", str(e)
+    except Exception:
+        logger.exception("Database health check failed")
+        return "down", None
 
 # Optional: centralize known metric descriptions shown in /schema
 _METRIC_DESCRIPTIONS = {
@@ -94,5 +99,6 @@ def get_schema():  # noqa: E501
         # It’s fine if empty (fresh DB) — returns an empty list per schema.
         return GetSchema200Response(metrics=metrics), 200
 
-    except Exception as e:
-        return cors_500(details=str(e))
+    except Exception:
+        logger.exception("Failed to fetch schema")
+        return cors_500(details="Internal server error")

@@ -183,9 +183,25 @@ class Config:
 
         # runtime
         runtime_raw = data.get("runtime") or {}
+        # bearer token: env var takes precedence over config file
+        bearer_token = (
+            os.getenv("ARCHIVER_BEARER_TOKEN")
+            or runtime_raw.get("bearer_token", "")
+        )
+        # strip env-var placeholder syntax if present (e.g. "${ARCHIVER_BEARER_TOKEN}")
+        if bearer_token.startswith("${") and bearer_token.endswith("}"):
+            bearer_token = ""
+
+        _INSECURE_TOKENS = {"", "changeme", "abcd1234", "change_me"}
+        if bearer_token.lower() in _INSECURE_TOKENS:
+            raise ValueError(
+                "bearer_token is missing or insecure. "
+                "Set ARCHIVER_BEARER_TOKEN env var or update runtime.bearer_token in config.yml"
+            )
+
         runtime = RuntimeConfig(
             port=int(runtime_raw.get("port") or 3500),
-            bearer_token=runtime_raw.get("bearer_token", "abcd1234")
+            bearer_token=bearer_token,
         )
 
         # logging

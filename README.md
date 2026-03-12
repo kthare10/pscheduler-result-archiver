@@ -1,15 +1,13 @@
 # pscheduler-result-archiver
 
-The **Result Archiver** is a REST-based service for ingesting, storing, and visualizing [pScheduler](https://docs.perfsonar.net/pscheduler_intro.html) test results such as latency, throughput, RTT, MTU, and trace data.  
+The **Result Archiver** is a REST-based service for ingesting, storing, and visualizing [pScheduler](https://docs.perfsonar.net/pscheduler_intro.html) test results such as latency, throughput, RTT, MTU, and trace data.
 It performs idempotent upserts (by `run_id` and `metric_name`) into a TimescaleDB backend and exposes endpoints for archival and retrieval, along with built-in OpenAPI/Swagger documentation.
 
 The stack also includes **Grafana** for visualization and **NGINX** for TLS termination and routing.
 
 ---
 
-## 🧱 Architecture Overview
-
-```
+## Architecture Overview
 
 ```
     ┌──────────────┐
@@ -48,17 +46,15 @@ The stack also includes **Grafana** for visualization and **NGINX** for TLS term
     └──────────────────────────┘
 ```
 
-````
-
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/kthare10/pscheduler-result-archiver.git
 cd pscheduler-result-archiver
-````
+```
 
 ### 2. Prepare directories
 
@@ -75,13 +71,32 @@ certs/fullchain.pem
 certs/privkey.pem
 ```
 
+> **Note:** The `certs/` directory is git-ignored. Never commit TLS certificates to version control.
+
 ### 4. Configure environment
 
-Edit `archiver/config.yml` to match your environment and database credentials.
+Copy the example environment file and fill in your secrets:
+
+```bash
+cp .env.example .env
+```
+
+Required variables in `.env`:
+
+| Variable                | Description                              |
+| ----------------------- | ---------------------------------------- |
+| `ARCHIVER_DB_PASSWORD`  | PostgreSQL password for `grafana_writer`  |
+| `ARCHIVER_BEARER_TOKEN` | Bearer token for API authentication       |
+| `GRAFANA_ADMIN_PASSWORD`| Grafana admin UI password                 |
+| `GRAFANA_ADMIN_USER`    | Grafana admin username (default: `admin`) |
+
+Docker Compose will refuse to start if required variables are missing.
+
+Optionally review `archiver/config.yml` for pool tuning, logging, and SSL settings. Environment variables always take precedence over config file values.
 
 ---
 
-## 🐳 Docker Compose Deployment
+## Docker Compose Deployment
 
 ### Compose file overview
 
@@ -92,16 +107,15 @@ services:
     environment:
       - POSTGRES_DB=perfsonar
       - POSTGRES_USER=grafana_writer
-      - POSTGRES_PASSWORD=change_me
+      - POSTGRES_PASSWORD=${ARCHIVER_DB_PASSWORD}
     volumes:
       - ./tsdb_data:/var/lib/postgresql/data
-    ports: ["5432:5432"]
 
   grafana:
     image: grafana/grafana:latest
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     volumes:
       - ./grafana_data:/var/lib/grafana
       - ./provisioning/datasources:/etc/grafana/provisioning/datasources
@@ -109,7 +123,6 @@ services:
     depends_on:
       timescaledb:
         condition: service_healthy
-    ports: ["3000:3000"]
 
   archiver:
     build:
@@ -118,10 +131,11 @@ services:
     image: kthare10/archiver:1.0.0
     environment:
       - APP_CONFIG_PATH=/etc/archiver/config/config.yml
+      - ARCHIVER_DB_PASSWORD=${ARCHIVER_DB_PASSWORD}
+      - ARCHIVER_BEARER_TOKEN=${ARCHIVER_BEARER_TOKEN}
     volumes:
       - ./archiver/config.yml:/etc/archiver/config/config.yml
       - ./logs:/var/log/archiver
-    ports: ["3500:3500"]
     depends_on:
       - grafana
 
@@ -132,7 +146,6 @@ services:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - ./certs/fullchain.pem:/etc/ssl/public.pem
       - ./certs/privkey.pem:/etc/ssl/private.pem
-      - /opt/data/production/logs/nginx/archiver:/var/log/nginx
     depends_on:
       - archiver
 ```
@@ -160,7 +173,7 @@ docker-compose logs -f archiver-nginx
 
 ---
 
-## 🌐 Access Points
+## Access Points
 
 | Service          | URL (default)                   | Notes                             |
 | ---------------- |---------------------------------| --------------------------------- |
@@ -171,25 +184,20 @@ docker-compose logs -f archiver-nginx
 
 ---
 
-## 🔑 Authentication
+## Authentication
 
 * API supports `Bearer` and `X-API-Key` auth schemes.
-* To disable authentication temporarily, set:
-
-  ```yaml
-  security:
-    bearerAuth: false
-  ```
-
-  in your configuration.
+* The bearer token is set via the `ARCHIVER_BEARER_TOKEN` environment variable.
+* The service will refuse to start if the token is missing or set to a known insecure default.
 
 ---
 
-## 🧩 Example Ingestion Request
+## Example Ingestion Request
 
 ```bash
 curl -sk -X POST https://localhost:8443/ps/measurements/throughput \
   -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <your-token>' \
   -d '{
         "run_id": "test-123",
         "src": {"ip": "192.168.1.10", "name": "ship-a"},
@@ -210,19 +218,14 @@ Expected response:
 
 ---
 
-## 📊 Grafana Integration
+## Grafana Integration
 
 Grafana is pre-provisioned with:
 
 * a **TimescaleDB datasource** (user: `grafana_writer`)
 * optional prebuilt dashboards under `provisioning/dashboards`
 
-Login credentials (first run):
-
-```
-Username: admin
-Password: admin
-```
+Login credentials are controlled by `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` environment variables.
 
 To reset password:
 
@@ -233,31 +236,44 @@ docker restart grafana
 
 ---
 
-## 🔒 HTTPS and Reverse Proxy
+## HTTPS and Reverse Proxy
 
 `nginx/default.conf` routes:
 
-* `/api/*` → Archiver (`http://archiver:3500`)
+* `/ps/*` → Archiver (`http://archiver:3500`)
 * `/` → Grafana (`http://grafana:3000`)
 
 TLS is enabled via `/etc/ssl/public.pem` and `/etc/ssl/private.pem`.
 
+NGINX is configured with:
+* Security headers (HSTS, X-Frame-Options, X-Content-Type-Options, etc.)
+* Rate limiting (10 req/s per IP on `/ps` endpoints)
+* Request body size limit (10 MB)
+
 ---
 
-## 🧰 Development
+## Development
 
 Run the API standalone (no Docker):
 
 ```bash
+pip install -r requirements.txt
 python -m archiver
 ```
 
 Default listens on port `3500`.
 Swagger UI: `http://localhost:3500/ps/ui`
 
+### Run tests
+
+```bash
+pip install -r test-requirements.txt
+pytest archiver/openapi_server/test/
+```
+
 ---
 
-## 🧹 Maintenance
+## Maintenance
 
 ### Backup TimescaleDB
 
@@ -274,14 +290,14 @@ docker-compose up -d --build
 
 ---
 
-## 🧾 License
+## License
 
-MIT License © 2025 Komal Thareja
+MIT License - 2025 Komal Thareja
 Part of the FABRIC Testbed Ship-to-Shore Monitoring Stack.
 
 ---
 
-## 📘 References
+## References
 
 * [pScheduler Documentation](https://docs.perfsonar.net/pscheduler_intro.html)
 * [TimescaleDB](https://www.timescale.com/)

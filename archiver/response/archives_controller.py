@@ -1,6 +1,9 @@
+import logging
 from datetime import datetime, timezone
 
 from archiver.common.globals import get_globals
+
+logger = logging.getLogger(__name__)
 from archiver.db.database_manager import DatabaseManager
 from archiver.openapi_server.models import Metric
 from archiver.openapi_server.models.measurement import Measurement  # noqa: E501
@@ -33,8 +36,9 @@ def get_measurement(run_id, x_request_id=None):  # noqa: E501
         # expects your DB manager to provide all rows for a run_id
         # each row is one metric for that run
         rows = DBM.fetch_run_rows(run_id)  # -> Iterable[PsTestResult]
-    except Exception as e:
-        return cors_500(details=str(e))
+    except Exception:
+        logger.exception("Failed to fetch run: %s", run_id)
+        return cors_500(details="Internal server error")
 
     if not rows:
         return cors_404(details=f"Run not found: {run_id}")
