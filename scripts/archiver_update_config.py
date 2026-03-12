@@ -38,7 +38,8 @@ def dump_yaml(path: Path, data: dict) -> None:
 
 
 def run_compose(config_path: Path) -> None:
-    workdir = config_path.parent
+    # docker-compose.yml lives at the repo root, two levels up from archiver/config.yml
+    workdir = config_path.parent.parent
     # Prefer `docker compose`, fallback to `docker-compose`
     compose_cmd = None
     try:
