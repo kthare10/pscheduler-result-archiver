@@ -12,6 +12,7 @@ datasources:
     secureJsonData:
       password: $ARCHIVER_DB_PASSWORD
     jsonData:
+      database: perfsonar
       sslmode: disable
       timescaledb: true
     version: 1
