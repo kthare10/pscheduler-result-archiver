@@ -24,6 +24,9 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env or environment}
+      - GF_AUTH_LOGIN_MAXIMUM_INACTIVE_LIFETIME_DURATION=30d
+      - GF_AUTH_LOGIN_MAXIMUM_LIFETIME_DURATION=30d
+      - GF_AUTH_TOKEN_ROTATION_INTERVAL_MINUTES=1440
       - ARCHIVER_DB_PASSWORD=${ARCHIVER_DB_PASSWORD}
     # Ensure Grafana waits until the database service reports healthy
     depends_on:
