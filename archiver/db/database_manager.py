@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, text, select, desc
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from .models import Base, PsTestResult
+from .models import Base, PsTestResult, NavData
 from ..common.config import Config
 
 
@@ -258,6 +258,59 @@ class DatabaseManager:
             })
         return catalog
 
+    def upsert_nav_data(self, rows: List[Dict[str, Any]]) -> UpsertCounts:
+        """
+        Bulk INSERT ON CONFLICT DO UPDATE for nav_data rows.
+        Uses COALESCE to merge partial sentence data at the same (ts, vessel_id).
+        """
+        if not rows:
+            return UpsertCounts(0, 0)
+
+        _merge_cols = [
+            "latitude", "longitude", "altitude_m", "fix_quality",
+            "num_satellites", "hdop", "heading_true", "motion_status",
+            "roll_deg", "pitch_deg", "heave_m",
+        ]
+
+        try:
+            with self.SessionLocal.begin() as s:
+                stmt = pg_insert(NavData.__table__).values(rows)
+                # COALESCE: keep incoming value if non-null, else keep existing
+                set_dict = {
+                    col: text(f"COALESCE(EXCLUDED.{col}, nav_data.{col})")
+                    for col in _merge_cols
+                }
+                # Merge aux JSONB: existing || new (new keys win)
+                set_dict["aux"] = text("COALESCE(nav_data.aux, '{}'::jsonb) || COALESCE(EXCLUDED.aux, '{}'::jsonb)")
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["ts", "vessel_id"],
+                    set_=set_dict,
+                )
+                result = s.execute(stmt)
+                total = result.rowcount or 0
+                return UpsertCounts(inserted=total, updated=0)
+        except Exception as e:
+            raise DatabaseError(str(e)) from e
+
+    def fetch_nav_data(
+        self,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        vessel_id: Optional[str] = None,
+        limit: int = 1000,
+    ) -> List[NavData]:
+        """Return nav_data rows filtered by time range and/or vessel_id."""
+        with self.SessionLocal() as s:
+            stmt = select(NavData).order_by(desc(NavData.ts))
+            if start:
+                stmt = stmt.where(NavData.ts >= start)
+            if end:
+                stmt = stmt.where(NavData.ts <= end)
+            if vessel_id:
+                stmt = stmt.where(NavData.vessel_id == vessel_id)
+            stmt = stmt.limit(limit)
+            return list(s.execute(stmt).scalars().all())
+
     def upsert_trace_hops(self, ts, run_id, src, dst, hops_flat: list[dict]):
         """
         Optional helper when you store per-hop rows in ps_trace_hops.
@@ -295,4 +348,19 @@ class DatabaseManager:
             # Hypertable (requires PKs/unique indexes to include ts — already handled in models.py)
             conn.exec_driver_sql(
                 "SELECT create_hypertable('ps_test_results','ts', if_not_exists => TRUE);"
+            )
+            # nav_data hypertable
+            conn.exec_driver_sql(
+                "SELECT create_hypertable('nav_data','ts', if_not_exists => TRUE);"
+            )
+            # Retention policy: drop nav_data chunks older than 180 days
+            conn.exec_driver_sql(
+                "SELECT add_retention_policy('nav_data', INTERVAL '180 days', if_not_exists => TRUE);"
+            )
+            # Compression policy: compress nav_data chunks older than 7 days
+            conn.exec_driver_sql(
+                "ALTER TABLE nav_data SET (timescaledb.compress, timescaledb.compress_segmentby = 'vessel_id');"
+            )
+            conn.exec_driver_sql(
+                "SELECT add_compression_policy('nav_data', INTERVAL '7 days', if_not_exists => TRUE);"
             )
