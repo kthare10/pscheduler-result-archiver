@@ -61,7 +61,6 @@
         "type": "query"
       },
       {
-        "current": {},
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "cf1s1g3beeccge"
@@ -72,11 +71,11 @@
         "name": "src",
         "options": [],
         "query": "SELECT DISTINCT src AS __text, src AS __value FROM ps_test_results ORDER BY 1;",
-        "refresh": 1,
+        "refresh": 2,
+        "sort": 1,
         "type": "query"
       },
       {
-        "current": {},
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "cf1s1g3beeccge"
@@ -87,7 +86,8 @@
         "name": "dst",
         "options": [],
         "query": "SELECT DISTINCT dst AS __text, dst AS __value FROM ps_test_results WHERE src='${src}' ORDER BY 1;",
-        "refresh": 1,
+        "refresh": 2,
+        "sort": 1,
         "type": "query"
       },
       {
@@ -744,5 +744,5 @@
       ]
     }
   ],
-  "version": 1
+  "version": 2
 }
