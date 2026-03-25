@@ -44,7 +44,7 @@
         },
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "timescaledb"
+          "uid": "cf1s1g3beeccge"
         },
         "definition": "SELECT DISTINCT vessel_id FROM nav_data ORDER BY vessel_id",
         "hide": 0,
@@ -70,7 +70,7 @@
       "type": "geomap",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "timescaledb"
+        "uid": "cf1s1g3beeccge"
       },
       "gridPos": {
         "h": 9,
@@ -167,7 +167,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "timescaledb"
+            "uid": "cf1s1g3beeccge"
           },
           "editorMode": "code",
           "format": "table",
@@ -184,7 +184,7 @@
       "type": "timeseries",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "timescaledb"
+        "uid": "cf1s1g3beeccge"
       },
       "gridPos": {
         "h": 9,
@@ -273,7 +273,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "timescaledb"
+            "uid": "cf1s1g3beeccge"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -284,7 +284,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "timescaledb"
+            "uid": "cf1s1g3beeccge"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -301,7 +301,7 @@
       "type": "timeseries",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "timescaledb"
+        "uid": "cf1s1g3beeccge"
       },
       "gridPos": {
         "h": 9,
@@ -389,7 +389,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "timescaledb"
+            "uid": "cf1s1g3beeccge"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -406,7 +406,7 @@
       "type": "timeseries",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "timescaledb"
+        "uid": "cf1s1g3beeccge"
       },
       "gridPos": {
         "h": 9,
@@ -493,7 +493,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "timescaledb"
+            "uid": "cf1s1g3beeccge"
           },
           "editorMode": "code",
           "format": "time_series",
@@ -510,7 +510,7 @@
       "type": "timeseries",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "timescaledb"
+        "uid": "cf1s1g3beeccge"
       },
       "gridPos": {
         "h": 9,
@@ -592,7 +592,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "timescaledb"
+            "uid": "cf1s1g3beeccge"
           },
           "editorMode": "code",
           "format": "table",
@@ -609,7 +609,7 @@
       "type": "timeseries",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "timescaledb"
+        "uid": "cf1s1g3beeccge"
       },
       "gridPos": {
         "h": 9,
@@ -691,7 +691,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "timescaledb"
+            "uid": "cf1s1g3beeccge"
           },
           "editorMode": "code",
           "format": "table",
