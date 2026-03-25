@@ -59,6 +59,48 @@
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
+      },
+      {
+        "current": { "text": "", "value": "" },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "cf1s1g3beeccge"
+        },
+        "includeAll": true,
+        "label": "Source",
+        "multi": false,
+        "name": "src",
+        "options": [],
+        "query": "SELECT DISTINCT src AS __text, src AS __value FROM ps_test_results ORDER BY 1;",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": { "text": "", "value": "" },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "cf1s1g3beeccge"
+        },
+        "includeAll": true,
+        "label": "Destination",
+        "multi": false,
+        "name": "dst",
+        "options": [],
+        "query": "SELECT DISTINCT dst AS __text, dst AS __value FROM ps_test_results WHERE (COALESCE('${src}','')='' OR src='${src}') ORDER BY 1;",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": { "text": "both", "value": "both" },
+        "label": "Direction",
+        "name": "direction",
+        "options": [
+          { "selected": true, "text": "both", "value": "both" },
+          { "selected": false, "text": "forward", "value": "forward" },
+          { "selected": false, "text": "reverse", "value": "reverse" }
+        ],
+        "query": "both,forward,reverse",
+        "type": "custom"
       }
     ]
   },
@@ -172,7 +214,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, latitude, longitude, vessel_id FROM nav_data WHERE $__timeFilter(ts) ORDER BY ts",
+          "rawSql": "SELECT ts AS time, latitude, longitude, vessel_id FROM nav_data WHERE $__timeFilter(ts) AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}') ORDER BY ts",
           "refId": "A"
         }
       ]
@@ -278,7 +320,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, metric_value AS \"throughput_mbps\" FROM ps_test_results WHERE metric_name = 'throughput_mbps' AND $__timeFilter(ts) ORDER BY ts",
+          "rawSql": "SELECT $__time(ts), metric_value AS value, concat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric FROM ps_test_results WHERE metric_name = 'throughput_mbps' AND $__timeFilter(ts) AND (COALESCE('${src}','')='' OR src='${src}') AND (COALESCE('${dst}','')='' OR dst='${dst}') AND ('${direction}' = 'both' OR coalesce(aux->>'traffic_dir','forward')='${direction}') ORDER BY 1",
           "refId": "A"
         },
         {
@@ -289,7 +331,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT time_bucket('1 minute', ts) AS time, AVG(ABS(roll_deg)) AS \"roll_deg\", AVG(ABS(pitch_deg)) AS \"pitch_deg\" FROM nav_data WHERE $__timeFilter(ts) GROUP BY 1 ORDER BY 1",
+          "rawSql": "SELECT time_bucket('1 minute', ts) AS time, AVG(ABS(roll_deg)) AS \"roll_deg\", AVG(ABS(pitch_deg)) AS \"pitch_deg\" FROM nav_data WHERE $__timeFilter(ts) AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}') GROUP BY 1 ORDER BY 1",
           "refId": "B"
         }
       ]
@@ -394,7 +436,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, heading_true, fix_quality, num_satellites FROM nav_data WHERE $__timeFilter(ts) ORDER BY ts",
+          "rawSql": "SELECT ts AS time, heading_true, fix_quality, num_satellites FROM nav_data WHERE $__timeFilter(ts) AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}') ORDER BY ts",
           "refId": "A"
         }
       ]
@@ -498,7 +540,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, roll_deg, pitch_deg, heave_m FROM nav_data WHERE $__timeFilter(ts) ORDER BY ts",
+          "rawSql": "SELECT ts AS time, roll_deg, pitch_deg, heave_m FROM nav_data WHERE $__timeFilter(ts) AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}') ORDER BY ts",
           "refId": "A"
         }
       ]
@@ -597,7 +639,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT r.ts AS time, r.metric_value AS \"rtt_ms\", n.heave_m FROM ps_test_results r LEFT JOIN LATERAL (SELECT heave_m FROM nav_data n WHERE n.ts BETWEEN r.ts - INTERVAL '30 seconds' AND r.ts + INTERVAL '30 seconds' ORDER BY ABS(EXTRACT(EPOCH FROM (n.ts - r.ts))) LIMIT 1) n ON true WHERE r.metric_name = 'mean_rtt_ms' AND $__timeFilter(r.ts) ORDER BY r.ts",
+          "rawSql": "SELECT r.ts AS time, r.metric_value AS \"rtt_ms\", concat(r.src,' → ',r.dst,' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric, n.heave_m FROM ps_test_results r LEFT JOIN LATERAL (SELECT heave_m FROM nav_data n WHERE n.ts BETWEEN r.ts - INTERVAL '30 seconds' AND r.ts + INTERVAL '30 seconds' AND ('${vessel_id}' = '$__all' OR n.vessel_id = '${vessel_id}') ORDER BY ABS(EXTRACT(EPOCH FROM (n.ts - r.ts))) LIMIT 1) n ON true WHERE r.metric_name = 'mean_rtt_ms' AND $__timeFilter(r.ts) AND (COALESCE('${src}','')='' OR r.src='${src}') AND (COALESCE('${dst}','')='' OR r.dst='${dst}') ORDER BY r.ts",
           "refId": "A"
         }
       ]
@@ -696,7 +738,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT tb AS time, avg_loss_pct, motion_severity FROM (SELECT time_bucket('5 minutes', ts) AS tb, AVG(metric_value) AS avg_loss_pct FROM ps_test_results WHERE metric_name = 'loss_pct' AND $__timeFilter(ts) GROUP BY 1) perf LEFT JOIN LATERAL (SELECT AVG(SQRT(roll_deg*roll_deg + pitch_deg*pitch_deg)) AS motion_severity FROM nav_data WHERE ts BETWEEN perf.tb AND perf.tb + INTERVAL '5 minutes') nav ON true ORDER BY 1",
+          "rawSql": "SELECT tb AS time, avg_loss_pct, path, motion_severity FROM (SELECT time_bucket('5 minutes', ts) AS tb, AVG(metric_value) AS avg_loss_pct, concat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS path FROM ps_test_results WHERE metric_name = 'loss_pct' AND $__timeFilter(ts) AND (COALESCE('${src}','')='' OR src='${src}') AND (COALESCE('${dst}','')='' OR dst='${dst}') GROUP BY 1, 3) perf LEFT JOIN LATERAL (SELECT AVG(SQRT(roll_deg*roll_deg + pitch_deg*pitch_deg)) AS motion_severity FROM nav_data WHERE ts BETWEEN perf.tb AND perf.tb + INTERVAL '5 minutes' AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}')) nav ON true ORDER BY 1",
           "refId": "A"
         }
       ]
