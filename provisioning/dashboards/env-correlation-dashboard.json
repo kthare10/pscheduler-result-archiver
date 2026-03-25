@@ -1,0 +1,330 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": { "limit": 100, "matchAny": false, "tags": [], "type": "dashboard" },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 2,
+  "id": null,
+  "links": [],
+  "uid": "env-correlation",
+  "title": "Time-Aligned Environmental Correlation",
+  "description": "Stacked time-aligned view of network performance metrics and vessel environmental data for visual correlation analysis.",
+  "schemaVersion": 39,
+  "tags": ["navigation", "perfsonar", "correlation", "environmental"],
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+        "definition": "SELECT DISTINCT vessel_id FROM nav_data ORDER BY vessel_id",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Vessel",
+        "multi": false,
+        "name": "vessel_id",
+        "options": [],
+        "query": "SELECT DISTINCT vessel_id FROM nav_data ORDER BY vessel_id",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+        "includeAll": false,
+        "label": "Source",
+        "multi": false,
+        "name": "src",
+        "options": [],
+        "query": "SELECT DISTINCT src AS __text, src AS __value FROM ps_test_results ORDER BY 1;",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+        "includeAll": false,
+        "label": "Destination",
+        "multi": false,
+        "name": "dst",
+        "options": [],
+        "query": "SELECT DISTINCT dst AS __text, dst AS __value FROM ps_test_results WHERE src='${src}' ORDER BY 1;",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": { "text": "both", "value": "both" },
+        "label": "Direction",
+        "name": "direction",
+        "options": [
+          { "selected": true, "text": "both", "value": "both" },
+          { "selected": false, "text": "forward", "value": "forward" },
+          { "selected": false, "text": "reverse", "value": "reverse" }
+        ],
+        "query": "both,forward,reverse",
+        "type": "custom"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Throughput (Upload / Download)",
+      "description": "iperf3 throughput split by traffic direction, time-aligned with environmental panels below.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "Throughput (Mbps)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 2,
+            "pointSize": 4, "showPoints": "always", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "Mbps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT $__time(ts), metric_value AS value, concat(coalesce(aux->>'traffic_dir','forward'), ' (', src, ' → ', dst, ')') AS metric FROM ps_test_results WHERE metric_name = 'throughput_mbps' AND $__timeFilter(ts) AND src='${src}' AND dst='${dst}' AND ('${direction}' = 'both' OR coalesce(aux->>'traffic_dir','forward')='${direction}') ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Round-Trip Time",
+      "description": "RTT measured by ping and tcpping, time-aligned with throughput and environmental panels.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "RTT (ms)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 2,
+            "pointSize": 4, "showPoints": "always", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT $__time(ts), metric_value AS value, concat(metric_name, ' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric FROM ps_test_results WHERE metric_name IN ('mean_rtt_ms', 'rtt_ms') AND $__timeFilter(ts) AND src='${src}' AND dst='${dst}' AND ('${direction}' = 'both' OR coalesce(aux->>'traffic_dir','forward')='${direction}') ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Latency",
+      "description": "Average latency measured by owping/halfping, time-aligned with other panels.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 12 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "Latency (ms)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 2,
+            "pointSize": 4, "showPoints": "always", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT $__time(ts), metric_value AS value, concat(metric_name, ' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric FROM ps_test_results WHERE metric_name = 'avg_latency' AND $__timeFilter(ts) AND src='${src}' AND dst='${dst}' AND ('${direction}' = 'both' OR coalesce(aux->>'traffic_dir','forward')='${direction}') ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Heading",
+      "description": "True heading from INHDT, downsampled to 10-min max aggregation.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 18 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "yellow", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "Heading (°)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 1,
+            "pointSize": 2, "showPoints": "never", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "degree", "min": 0, "max": 360
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, MAX(heading_true) AS \"Heading (°)\" FROM nav_data WHERE $__timeFilter(ts) AND heading_true IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Roll",
+      "description": "Vessel roll angle from PSXN,23, downsampled to 10-min max aggregation to highlight peak motion events.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 23 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": true, "axisColorMode": "text",
+            "axisLabel": "Roll (°)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 1,
+            "pointSize": 2, "showPoints": "never", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "degree"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, MAX(ABS(roll_deg)) AS \"Roll (°)\" FROM nav_data WHERE $__timeFilter(ts) AND roll_deg IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Pitch",
+      "description": "Vessel pitch angle from PSXN,23, downsampled to 10-min max aggregation.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 28 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "purple", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": true, "axisColorMode": "text",
+            "axisLabel": "Pitch (°)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 1,
+            "pointSize": 2, "showPoints": "never", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "degree"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, MAX(ABS(pitch_deg)) AS \"Pitch (°)\" FROM nav_data WHERE $__timeFilter(ts) AND pitch_deg IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Heave",
+      "description": "Vessel heave from PSXN,23, downsampled to 10-min max aggregation.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 33 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": true, "axisColorMode": "text",
+            "axisLabel": "Heave (m)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 1,
+            "pointSize": 2, "showPoints": "never", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "lengthm"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, MAX(ABS(heave_m)) AS \"Heave (m)\" FROM nav_data WHERE $__timeFilter(ts) AND heave_m IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}
