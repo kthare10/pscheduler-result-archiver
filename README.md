@@ -3,6 +3,8 @@
 The **Result Archiver** is a REST-based service for ingesting, storing, and visualizing [pScheduler](https://docs.perfsonar.net/pscheduler_intro.html) test results such as latency, throughput, RTT, MTU, and trace data.
 It performs idempotent upserts (by `run_id` and `metric_name`) into a TimescaleDB backend and exposes endpoints for archival and retrieval, along with built-in OpenAPI/Swagger documentation.
 
+It also supports **NMEA 0183 navigation data** (GPS position, heading, roll/pitch/heave) for correlating network performance with vessel motion on research ships.
+
 The stack also includes **Grafana** for visualization and **NGINX** for TLS termination and routing.
 
 ---
@@ -27,7 +29,9 @@ The stack also includes **Grafana** for visualization and **NGINX** for TLS term
     ┌──────────────────────────┐
     │   TimescaleDB (Postgres) │
     │   Database: perfsonar    │
-    │   Tables: measurements   │
+    │   Tables: ps_test_results │
+    │           ps_trace_hops   │
+    │           nav_data        │
     └──────────┬───────────────┘
                │ Grafana datasource (readonly)
                ▼
@@ -182,6 +186,16 @@ docker-compose logs -f archiver-nginx
 | **Grafana**      | `https://localhost:8443/`       | Dashboards / visualization        |
 | **TimescaleDB**  | `timescaledb:5432`              | Internal DB connection            |
 
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/ps/measurements/{category}` | Ingest pScheduler test results (latency, throughput, rtt, trace, mtu, clock) |
+| `GET`  | `/ps/archives/{run_id}` | Retrieve archived results by run ID |
+| `POST` | `/ps/measurements/nav` | Ingest NMEA navigation data (batch of GPS/heading/motion points) |
+| `GET`  | `/ps/nav` | Retrieve navigation data by time range, vessel ID |
+| `GET`  | `/ps/health` | Health check |
+
 ---
 
 ## Authentication
@@ -216,6 +230,26 @@ Expected response:
 }
 ```
 
+### Ingest Navigation Data
+
+```bash
+curl -sk -X POST https://localhost:8443/ps/measurements/nav \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <your-token>' \
+  -d '{
+        "points": [{
+          "ts": "2025-06-15T18:30:00Z",
+          "vessel_id": "rv-thompson",
+          "latitude": 47.6062,
+          "longitude": -122.3321,
+          "heading_true": 315.0,
+          "roll_deg": 3.5,
+          "pitch_deg": 1.2,
+          "heave_m": 0.4
+        }]
+      }'
+```
+
 ---
 
 ## Grafana Integration
@@ -223,7 +257,9 @@ Expected response:
 Grafana is pre-provisioned with:
 
 * a **TimescaleDB datasource** (user: `grafana_writer`)
-* optional prebuilt dashboards under `provisioning/dashboards`
+* prebuilt dashboards under `provisioning/dashboards`:
+  * **pScheduler Result Archiver (Pairs)** — throughput, latency, RTT, MTU, clock, trace per source/destination pair
+  * **Navigation Correlation** — vessel position map, throughput vs. roll/pitch, RTT vs. heave, heading & GPS quality, motion detail (requires NMEA listener feeding `nav_data` table)
 
 Login credentials are controlled by `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` environment variables.
 
@@ -270,6 +306,25 @@ Swagger UI: `http://localhost:3500/ps/ui`
 pip install -r test-requirements.txt
 pytest archiver/openapi_server/test/
 ```
+
+---
+
+## Data Model
+
+### `ps_test_results`
+Stores pScheduler network measurement results. Composite PK `(run_id, metric_name, ts, src_ip, dst_ip, direction)` enables idempotent re-ingestion. JSONB `aux` column stores raw tool output.
+
+**Metrics**: `throughput_mbps`, `retransmits`, `delay_ms`, `jitter_ms`, `loss_pct`, `rtt_ms` (mean/min/max), `mtu_bytes`, `hop_count`, `clock_diff_ms`, `clock_offset_s`
+
+### `ps_trace_hops`
+Stores traceroute hop-by-hop data. PK `(run_id, hop_idx)`.
+
+### `nav_data`
+Stores NMEA 0183 navigation data from research vessels. Composite PK `(ts, vessel_id)`.
+
+**Columns**: `latitude`, `longitude`, `altitude_m`, `fix_quality`, `num_satellites`, `hdop`, `heading_true`, `motion_status`, `roll_deg`, `pitch_deg`, `heave_m`, `aux` (JSONB)
+
+All tables are TimescaleDB hypertables with 180-day retention and 7-day compression policies.
 
 ---
 

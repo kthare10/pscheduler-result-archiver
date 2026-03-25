@@ -100,3 +100,66 @@ class PsTraceHop(Base):
             "hop_ip": self.hop_ip,
             "rtt_ms": self.rtt_ms,
         }
+
+
+class NavData(Base):
+    """
+    Navigation data from NMEA 0183 sentences (GPS position, heading, roll/pitch/heave).
+    Composite PK (ts, vessel_id) enables idempotent upserts and satisfies
+    TimescaleDB hypertable uniqueness rules.
+    """
+    __tablename__ = "nav_data"
+
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    vessel_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # GPS position ($INGGA)
+    latitude: Mapped[Optional[float]] = mapped_column(Float)
+    longitude: Mapped[Optional[float]] = mapped_column(Float)
+    altitude_m: Mapped[Optional[float]] = mapped_column(Float)
+    fix_quality: Mapped[Optional[int]] = mapped_column(Integer)
+    num_satellites: Mapped[Optional[int]] = mapped_column(Integer)
+    hdop: Mapped[Optional[float]] = mapped_column(Float)
+
+    # Heading ($INHDT)
+    heading_true: Mapped[Optional[float]] = mapped_column(Float)
+
+    # Motion status ($PSXN,20)
+    motion_status: Mapped[Optional[int]] = mapped_column(Integer)
+
+    # Roll/pitch/heave ($PSXN,23)
+    roll_deg: Mapped[Optional[float]] = mapped_column(Float)
+    pitch_deg: Mapped[Optional[float]] = mapped_column(Float)
+    heave_m: Mapped[Optional[float]] = mapped_column(Float)
+
+    # Raw details
+    aux: Mapped[Optional[dict]] = mapped_column(JSONB)
+
+    __table_args__ = (
+        PrimaryKeyConstraint("ts", "vessel_id", name="nav_data_pkey"),
+        Index("idx_nav_ts", "ts", postgresql_using="btree"),
+        Index("idx_nav_vessel", "vessel_id", postgresql_using="btree"),
+        Index("idx_nav_latlon", "latitude", "longitude", postgresql_using="btree"),
+    )
+
+    def __repr__(self) -> str:
+        return (f"NavData(ts={self.ts}, vessel_id={self.vessel_id!r}, "
+                f"lat={self.latitude}, lon={self.longitude})")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ts": self.ts.isoformat() if self.ts else None,
+            "vessel_id": self.vessel_id,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "altitude_m": self.altitude_m,
+            "fix_quality": self.fix_quality,
+            "num_satellites": self.num_satellites,
+            "hdop": self.hdop,
+            "heading_true": self.heading_true,
+            "motion_status": self.motion_status,
+            "roll_deg": self.roll_deg,
+            "pitch_deg": self.pitch_deg,
+            "heave_m": self.heave_m,
+            "aux": self.aux,
+        }

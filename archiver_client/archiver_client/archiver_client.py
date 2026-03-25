@@ -194,6 +194,54 @@ class ArchiverClient:
     ) -> Dict[str, Any]:
         return self._post_measurement("/measurements/trace", body, upsert, request_id, idempotency_key)
 
+    # ---------- public: Navigation ----------
+
+    def create_nav_measurement(
+        self,
+        data_points: list[Dict[str, Any]],
+        *,
+        request_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        POST /measurements/nav — ingest a batch of navigation data points.
+
+        data_points: list of dicts with keys: ts, vessel_id, latitude, longitude,
+            altitude_m, fix_quality, num_satellites, hdop, heading_true,
+            motion_status, roll_deg, pitch_deg, heave_m, aux
+        """
+        payload = {"points": data_points}
+        return self._request_json(
+            "POST", "/measurements/nav",
+            json_body=payload,
+            headers=self._id_header(request_id),
+        )
+
+    def get_nav_data(
+        self,
+        *,
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+        vessel_id: Optional[str] = None,
+        limit: int = 1000,
+        request_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        GET /nav — retrieve nav data by time range.
+        """
+        params: Dict[str, Any] = {}
+        if start:
+            params["start"] = start
+        if end:
+            params["end"] = end
+        if vessel_id:
+            params["vessel_id"] = vessel_id
+        params["limit"] = str(limit)
+        return self._request_json(
+            "GET", "/nav",
+            params=params,
+            headers=self._id_header(request_id),
+        )
+
     # --------------------------- internal helpers ---------------------------
 
     def _post_measurement(

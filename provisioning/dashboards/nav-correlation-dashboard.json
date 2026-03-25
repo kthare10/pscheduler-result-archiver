@@ -1,0 +1,748 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "uid": "nav-correlation",
+  "title": "Navigation & Network Correlation",
+  "description": "Correlates vessel navigation data (position, motion, heading) with perfSONAR network performance metrics.",
+  "schemaVersion": 39,
+  "tags": ["navigation", "perfsonar", "correlation"],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "cf1s1g3beeccge"
+        },
+        "definition": "SELECT DISTINCT vessel_id FROM nav_data ORDER BY vessel_id",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Vessel",
+        "multi": false,
+        "name": "vessel_id",
+        "options": [],
+        "query": "SELECT DISTINCT vessel_id FROM nav_data ORDER BY vessel_id",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "cf1s1g3beeccge"
+        },
+        "includeAll": false,
+        "label": "Source",
+        "multi": false,
+        "name": "src",
+        "options": [],
+        "query": "SELECT DISTINCT src AS __text, src AS __value FROM ps_test_results ORDER BY 1;",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "cf1s1g3beeccge"
+        },
+        "includeAll": false,
+        "label": "Destination",
+        "multi": false,
+        "name": "dst",
+        "options": [],
+        "query": "SELECT DISTINCT dst AS __text, dst AS __value FROM ps_test_results WHERE src='${src}' ORDER BY 1;",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": { "text": "both", "value": "both" },
+        "label": "Direction",
+        "name": "direction",
+        "options": [
+          { "selected": true, "text": "both", "value": "both" },
+          { "selected": false, "text": "forward", "value": "forward" },
+          { "selected": false, "text": "reverse", "value": "reverse" }
+        ],
+        "query": "both,forward,reverse",
+        "type": "custom"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Vessel Position",
+      "description": "Geographic position of the vessel over the selected time range.",
+      "type": "geomap",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "view": {
+          "allLayers": true,
+          "id": "coords",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 4
+        },
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": false,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.7,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "fixed": 5,
+                  "max": 15,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "location": {
+              "latitude": "latitude",
+              "longitude": "longitude",
+              "mode": "coords"
+            },
+            "name": "Vessel Track",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, latitude, longitude, vessel_id FROM nav_data WHERE $__timeFilter(ts) AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}') ORDER BY ts",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Throughput vs. Roll/Pitch",
+      "description": "Correlates network throughput with vessel roll and pitch to identify motion-induced degradation.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "throughput_mbps" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "left" },
+              { "id": "custom.axisLabel", "value": "Throughput (Mbps)" },
+              { "id": "unit", "value": "Mbps" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "roll_deg" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.axisLabel", "value": "Degrees" },
+              { "id": "unit", "value": "degree" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pitch_deg" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "unit", "value": "degree" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__time(ts), metric_value AS value, concat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric FROM ps_test_results WHERE metric_name = 'throughput_mbps' AND $__timeFilter(ts) AND src='${src}' AND dst='${dst}' AND ('${direction}' = 'both' OR coalesce(aux->>'traffic_dir','forward')='${direction}') ORDER BY 1",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT time_bucket('1 minute', ts) AS time, AVG(ABS(roll_deg)) AS \"roll_deg\", AVG(ABS(pitch_deg)) AS \"pitch_deg\" FROM nav_data WHERE $__timeFilter(ts) AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}') GROUP BY 1 ORDER BY 1",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Heading & GPS Quality",
+      "description": "Vessel heading, GPS fix quality, and satellite count over time.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "heading_true" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "left" },
+              { "id": "custom.axisLabel", "value": "Heading (degrees)" },
+              { "id": "unit", "value": "degree" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "fix_quality" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.axisLabel", "value": "Fix Quality" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "num_satellites" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.axisLabel", "value": "Satellites" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, heading_true, fix_quality, num_satellites FROM nav_data WHERE $__timeFilter(ts) AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}') ORDER BY ts",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Motion Detail",
+      "description": "Detailed vessel motion: roll, pitch, and heave measurements over time.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "roll_deg" },
+            "properties": [
+              { "id": "custom.axisLabel", "value": "Degrees" },
+              { "id": "unit", "value": "degree" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pitch_deg" },
+            "properties": [
+              { "id": "unit", "value": "degree" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "heave_m" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.axisLabel", "value": "Heave (m)" },
+              { "id": "unit", "value": "lengthm" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "min", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, roll_deg, pitch_deg, heave_m FROM nav_data WHERE $__timeFilter(ts) AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}') ORDER BY ts",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "RTT vs. Heave",
+      "description": "Round-trip time correlated with nearest vessel heave measurement using a lateral join within a 30-second window.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "rtt_ms" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "left" },
+              { "id": "custom.axisLabel", "value": "RTT (ms)" },
+              { "id": "unit", "value": "ms" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "heave_m" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.axisLabel", "value": "Heave (m)" },
+              { "id": "unit", "value": "lengthm" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT r.ts AS time, r.metric_value AS \"rtt_ms\", concat(r.src,' → ',r.dst,' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric, n.heave_m FROM ps_test_results r LEFT JOIN LATERAL (SELECT heave_m FROM nav_data n WHERE n.ts BETWEEN r.ts - INTERVAL '30 seconds' AND r.ts + INTERVAL '30 seconds' AND ('${vessel_id}' = '$__all' OR n.vessel_id = '${vessel_id}') ORDER BY ABS(EXTRACT(EPOCH FROM (n.ts - r.ts))) LIMIT 1) n ON true WHERE r.metric_name = 'mean_rtt_ms' AND $__timeFilter(r.ts) AND (COALESCE('${src}','')='' OR r.src='${src}') AND (COALESCE('${dst}','')='' OR r.dst='${dst}') ORDER BY r.ts",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Loss vs. Motion Severity",
+      "description": "Packet loss percentage correlated with motion severity (RSS of roll and pitch) using 5-minute time buckets.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 45
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "avg_loss_pct" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "left" },
+              { "id": "custom.axisLabel", "value": "Loss (%)" },
+              { "id": "unit", "value": "percent" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "motion_severity" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.axisLabel", "value": "Motion Severity (degrees)" },
+              { "id": "unit", "value": "degree" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT tb AS time, avg_loss_pct, path, motion_severity FROM (SELECT time_bucket('5 minutes', ts) AS tb, AVG(metric_value) AS avg_loss_pct, concat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS path FROM ps_test_results WHERE metric_name = 'loss_pct' AND $__timeFilter(ts) AND src='${src}' AND dst='${dst}' GROUP BY 1, 3) perf LEFT JOIN LATERAL (SELECT AVG(SQRT(roll_deg*roll_deg + pitch_deg*pitch_deg)) AS motion_severity FROM nav_data WHERE ts BETWEEN perf.tb AND perf.tb + INTERVAL '5 minutes' AND ('${vessel_id}' = '$__all' OR vessel_id = '${vessel_id}')) nav ON true ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "version": 2
+}

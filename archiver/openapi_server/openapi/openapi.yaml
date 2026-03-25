@@ -19,6 +19,8 @@ tags:
   name: Archives
 - description: "Service health, schema discovery, and metadata endpoints."
   name: Operations
+- description: Ingest and retrieve vessel navigation data (GPS, heading, motion).
+  name: Navigation
 paths:
   /archives/{run_id}:
     get:
@@ -433,6 +435,109 @@ paths:
       tags:
       - Measurements
       x-openapi-router-controller: archiver.openapi_server.controllers.measurements_controller
+  /measurements/nav:
+    post:
+      operationId: create_nav_measurement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NavDataRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_200_ok_no_content"
+          description: OK (created or updated)
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_400_bad_request"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_403_forbidden"
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_500_internal_server_error"
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Ingest a batch of vessel navigation data points
+      tags:
+      - Navigation
+      x-openapi-router-controller: archiver.openapi_server.controllers.nav_controller
+  /nav:
+    get:
+      operationId: get_nav_data
+      parameters:
+      - description: Start of time range (ISO 8601)
+        in: query
+        name: start
+        required: false
+        schema:
+          format: date-time
+          type: string
+      - description: End of time range (ISO 8601)
+        in: query
+        name: end
+        required: false
+        schema:
+          format: date-time
+          type: string
+      - description: Vessel identifier
+        in: query
+        name: vessel_id
+        required: false
+        schema:
+          type: string
+      - description: Maximum number of rows to return
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 1000
+          maximum: 10000
+          type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NavDataResponse"
+          description: Navigation data points
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_401_unauthorized"
+          description: Unauthorized
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status_500_internal_server_error"
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Retrieve vessel navigation data by time range
+      tags:
+      - Navigation
+      x-openapi-router-controller: archiver.openapi_server.controllers.nav_controller
   /schema:
     get:
       operationId: get_schema
@@ -656,6 +761,85 @@ components:
       - name
       - value
       title: Metric
+      type: object
+    NavDataPoint:
+      additionalProperties: false
+      properties:
+        ts:
+          description: Measurement timestamp (UTC ISO 8601)
+          format: date-time
+          type: string
+        vessel_id:
+          description: Vessel identifier (e.g. rv-thompson)
+          type: string
+        latitude:
+          description: Latitude in decimal degrees (WGS84)
+          type: number
+        longitude:
+          description: Longitude in decimal degrees (WGS84)
+          type: number
+        altitude_m:
+          description: Altitude above MSL in meters
+          type: number
+        fix_quality:
+          description: "GPS fix quality (0=invalid, 1=GPS, 2=DGPS, 4=RTK, 5=float RTK)"
+          type: integer
+        num_satellites:
+          description: Number of satellites in use
+          type: integer
+        hdop:
+          description: Horizontal dilution of precision
+          type: number
+        heading_true:
+          description: True heading in degrees
+          type: number
+        motion_status:
+          description: "Kongsberg MRU status (0=normal, 1+=degraded)"
+          type: integer
+        roll_deg:
+          description: Roll angle in degrees (positive starboard down)
+          type: number
+        pitch_deg:
+          description: Pitch angle in degrees (positive bow up)
+          type: number
+        heave_m:
+          description: Heave in meters (positive up)
+          type: number
+        aux:
+          description: Additional raw NMEA data (stored as JSONB)
+          type: object
+      required:
+      - ts
+      - vessel_id
+      title: NavDataPoint
+      type: object
+    NavDataRequest:
+      additionalProperties: false
+      properties:
+        points:
+          description: Array of navigation data points (max 1000 per request)
+          items:
+            $ref: "#/components/schemas/NavDataPoint"
+          maxItems: 1000
+          minItems: 1
+          type: array
+      required:
+      - points
+      title: NavDataRequest
+      type: object
+    NavDataResponse:
+      additionalProperties: false
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/NavDataPoint"
+          type: array
+        size:
+          type: integer
+      required:
+      - data
+      - size
+      title: NavDataResponse
       type: object
     status_200_ok_single:
       properties:
