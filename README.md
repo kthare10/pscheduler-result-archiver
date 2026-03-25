@@ -260,6 +260,7 @@ Grafana is pre-provisioned with:
 * prebuilt dashboards under `provisioning/dashboards`:
   * **pScheduler Result Archiver (Pairs)** — throughput, latency, RTT, MTU, clock, trace per source/destination pair
   * **Navigation Correlation** — vessel position map, throughput vs. roll/pitch, RTT vs. heave, heading & GPS quality, motion detail (requires NMEA listener feeding `nav_data` table)
+  * **Time-Aligned Environmental Correlation** — stacked time-aligned panels for throughput, RTT, latency, heading, roll, pitch, heave (modeled after Sikuliaq paper Figure 6)
 
 Login credentials are controlled by `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` environment variables.
 
