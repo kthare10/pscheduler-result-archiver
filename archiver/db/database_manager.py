@@ -258,6 +258,30 @@ class DatabaseManager:
             })
         return catalog
 
+    @staticmethod
+    def _dedup_nav_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Merge rows with the same (ts, vessel_id) so no duplicates reach INSERT.
+
+        Later non-null values override earlier nulls (COALESCE-style), and
+        aux JSONB objects are merged (later keys win).
+        """
+        merged: Dict[tuple, Dict[str, Any]] = {}
+        for row in rows:
+            key = (row["ts"], row["vessel_id"])
+            if key not in merged:
+                merged[key] = dict(row)
+            else:
+                existing = merged[key]
+                for k, v in row.items():
+                    if k == "aux":
+                        # Merge aux dicts: existing || new
+                        old_aux = existing.get("aux") or {}
+                        new_aux = v or {}
+                        existing["aux"] = {**old_aux, **new_aux}
+                    elif v is not None:
+                        existing[k] = v
+        return list(merged.values())
+
     def upsert_nav_data(self, rows: List[Dict[str, Any]]) -> UpsertCounts:
         """
         Bulk INSERT ON CONFLICT DO UPDATE for nav_data rows.
@@ -265,6 +289,9 @@ class DatabaseManager:
         """
         if not rows:
             return UpsertCounts(0, 0)
+
+        # Deduplicate within the batch to avoid CardinalityViolation
+        rows = self._dedup_nav_rows(rows)
 
         _merge_cols = [
             "latitude", "longitude", "altitude_m", "fix_quality",
