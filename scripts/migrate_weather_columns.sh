@@ -14,7 +14,7 @@ set -euo pipefail
 CONTAINER="timescaledb"
 HOST=""
 PORT="5432"
-USER="archiver"
+USER="grafana_writer"
 DBNAME="perfsonar"
 
 while [[ $# -gt 0 ]]; do
