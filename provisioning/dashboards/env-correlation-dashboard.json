@@ -324,6 +324,158 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "id": 8,
+      "title": "Wind Speed",
+      "description": "Relative and true wind speed from $RELWS/$RELWD, downsampled to 10-min AVG aggregation.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 38 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "green", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "Wind Speed (kts)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 1,
+            "pointSize": 2, "showPoints": "never", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "knots"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "True Wind (kts)" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "dark-green", "mode": "fixed" } },
+              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, AVG(rel_wind_speed_kts) AS \"Relative Wind (kts)\", AVG(true_wind_speed_kts) AS \"True Wind (kts)\" FROM nav_data WHERE $__timeFilter(ts) AND (rel_wind_speed_kts IS NOT NULL OR true_wind_speed_kts IS NOT NULL) AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Wind Direction",
+      "description": "Relative and true wind direction from $RELWS/$RELWD, downsampled to 10-min AVG aggregation.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 43 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "super-light-blue", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "Wind Direction (°)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 1,
+            "pointSize": 2, "showPoints": "never", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "degree", "min": 0, "max": 360
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "True Wind Dir (°)" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } },
+              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, AVG(rel_wind_dir_deg) AS \"Relative Wind Dir (°)\", AVG(true_wind_dir_deg) AS \"True Wind Dir (°)\" FROM nav_data WHERE $__timeFilter(ts) AND (rel_wind_dir_deg IS NOT NULL OR true_wind_dir_deg IS NOT NULL) AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Barometric Pressure",
+      "description": "Barometric pressure from SCS environmental broadcast, downsampled to 10-min AVG.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 48 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "red", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "Pressure (hPa)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 1,
+            "pointSize": 2, "showPoints": "never", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "pressurehpa"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, AVG(pressure_hpa) AS \"Pressure (hPa)\" FROM nav_data WHERE $__timeFilter(ts) AND pressure_hpa IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Relative Humidity",
+      "description": "Relative humidity from SCS environmental broadcast, downsampled to 10-min AVG.",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 53 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "semi-dark-blue", "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
+            "axisLabel": "Humidity (%)", "axisPlacement": "left",
+            "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 1,
+            "pointSize": 2, "showPoints": "never", "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "unit": "humidity", "min": 0, "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
+          "editorMode": "code", "format": "time_series", "rawQuery": true,
+          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, AVG(humidity_pct) AS \"Humidity (%)\" FROM nav_data WHERE $__timeFilter(ts) AND humidity_pct IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "version": 1

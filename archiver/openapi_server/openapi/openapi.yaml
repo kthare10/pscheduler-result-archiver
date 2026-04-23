@@ -805,6 +805,24 @@ components:
         heave_m:
           description: Heave in meters (positive up)
           type: number
+        rel_wind_speed_kts:
+          description: Relative wind speed in knots ($RELWS)
+          type: number
+        rel_wind_dir_deg:
+          description: Relative wind direction in degrees ($RELWS)
+          type: number
+        true_wind_speed_kts:
+          description: True wind speed in knots ($RELWD)
+          type: number
+        true_wind_dir_deg:
+          description: True wind direction in degrees ($RELWD)
+          type: number
+        pressure_hpa:
+          description: Barometric pressure in hectopascals (bare value after $RELWD)
+          type: number
+        humidity_pct:
+          description: Relative humidity percentage (bare value after $RELWD)
+          type: number
         aux:
           description: Additional raw NMEA data (stored as JSONB)
           type: object

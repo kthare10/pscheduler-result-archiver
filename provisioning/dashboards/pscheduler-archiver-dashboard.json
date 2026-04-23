@@ -64,11 +64,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name='throughput_mbps'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name='throughput_mbps'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\nORDER BY 1;",
           "refId": "A"
         }
       ],
-      "title": "Throughput (Mbps)",
+      "title": "Throughput (Mbps) — Forward & Reverse",
       "type": "timeseries"
     },
     {
@@ -117,11 +117,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ' retransmits]') AS metric\nFROM ps_test_results\nWHERE metric_name='retransmits'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ' retransmits]') AS metric\nFROM ps_test_results\nWHERE metric_name='retransmits'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\nORDER BY 1;",
           "refId": "A"
         }
       ],
-      "title": "Retransmits (count)",
+      "title": "Retransmits (count) — Forward & Reverse",
       "type": "timeseries"
     },
     {
@@ -170,11 +170,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name IN ('avg_latency')\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name IN ('avg_latency')\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\nORDER BY 1;",
           "refId": "A"
         }
       ],
-      "title": "Latency (ms)",
+      "title": "Latency (ms) — Forward & Reverse",
       "type": "timeseries"
     },
     {
@@ -248,11 +248,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(\n\t\tCASE metric_name\n\t\t\tWHEN 'min_rtt_ms' THEN 'Minimum - '\n\t\t\tWHEN 'mean_rtt_ms' THEN 'Mean - '\n\t\t\tWHEN 'max_rtt_ms' THEN 'Max - '\n\t\t\tELSE ''\n\t\tEND,\n\t\tsrc,' → ',dst,' (',tool,')',\n\t\tCASE WHEN aux ? 'ip_version' THEN concat(' - IPv', aux->>'ip_version') ELSE '' END\n\t) AS metric\nFROM ps_test_results\nWHERE metric_name IN ('min_rtt_ms','mean_rtt_ms','max_rtt_ms')\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(\n\t\tCASE metric_name\n\t\t\tWHEN 'min_rtt_ms' THEN 'Minimum - '\n\t\t\tWHEN 'mean_rtt_ms' THEN 'Mean - '\n\t\t\tWHEN 'max_rtt_ms' THEN 'Max - '\n\t\t\tELSE ''\n\t\tEND,\n\t\tsrc,' → ',dst,' (',tool,') [',coalesce(aux->>'traffic_dir','forward'),']',\n\t\tCASE WHEN aux ? 'ip_version' THEN concat(' - IPv', aux->>'ip_version') ELSE '' END\n\t) AS metric\nFROM ps_test_results\nWHERE metric_name IN ('min_rtt_ms','mean_rtt_ms','max_rtt_ms')\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\nORDER BY 1;",
           "refId": "A"
         }
       ],
-      "title": "RTT (ms)",
+      "title": "RTT (ms) — Forward & Reverse",
       "type": "timeseries"
     },
     {
@@ -302,11 +302,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name='loss_pct'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\n\tAND coalesce(aux->>'traffic_dir','forward')='${direction}'\nORDER BY 1;",
+          "rawSql": "SELECT\n\t$__time(ts),\n\tmetric_value AS value,\n\tconcat(src,' → ',dst,' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric\nFROM ps_test_results\nWHERE metric_name='loss_pct'\n\tAND $__timeFilter(ts)\n\tAND (COALESCE('${src}','')='' OR src='${src}')\n\tAND (COALESCE('${dst}','')='' OR dst='${dst}')\nORDER BY 1;",
           "refId": "A"
         }
       ],
-      "title": "Packet Loss (%)",
+      "title": "Packet Loss (%) — Forward & Reverse",
       "type": "timeseries"
     },
     {

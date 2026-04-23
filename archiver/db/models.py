@@ -132,6 +132,16 @@ class NavData(Base):
     pitch_deg: Mapped[Optional[float]] = mapped_column(Float)
     heave_m: Mapped[Optional[float]] = mapped_column(Float)
 
+    # Wind data ($RELWS / $RELWD)
+    rel_wind_speed_kts: Mapped[Optional[float]] = mapped_column(Float)
+    rel_wind_dir_deg: Mapped[Optional[float]] = mapped_column(Float)
+    true_wind_speed_kts: Mapped[Optional[float]] = mapped_column(Float)
+    true_wind_dir_deg: Mapped[Optional[float]] = mapped_column(Float)
+
+    # Environmental data (bare values after $RELWD)
+    pressure_hpa: Mapped[Optional[float]] = mapped_column(Float)
+    humidity_pct: Mapped[Optional[float]] = mapped_column(Float)
+
     # Raw details
     aux: Mapped[Optional[dict]] = mapped_column(JSONB)
 
@@ -161,5 +171,11 @@ class NavData(Base):
             "roll_deg": self.roll_deg,
             "pitch_deg": self.pitch_deg,
             "heave_m": self.heave_m,
+            "rel_wind_speed_kts": self.rel_wind_speed_kts,
+            "rel_wind_dir_deg": self.rel_wind_dir_deg,
+            "true_wind_speed_kts": self.true_wind_speed_kts,
+            "true_wind_dir_deg": self.true_wind_dir_deg,
+            "pressure_hpa": self.pressure_hpa,
+            "humidity_pct": self.humidity_pct,
             "aux": self.aux,
         }

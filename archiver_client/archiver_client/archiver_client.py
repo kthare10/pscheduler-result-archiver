@@ -207,7 +207,10 @@ class ArchiverClient:
 
         data_points: list of dicts with keys: ts, vessel_id, latitude, longitude,
             altitude_m, fix_quality, num_satellites, hdop, heading_true,
-            motion_status, roll_deg, pitch_deg, heave_m, aux
+            motion_status, roll_deg, pitch_deg, heave_m,
+            rel_wind_speed_kts, rel_wind_dir_deg,
+            true_wind_speed_kts, true_wind_dir_deg,
+            pressure_hpa, humidity_pct, aux
         """
         payload = {"points": data_points}
         return self._request_json(

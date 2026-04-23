@@ -64,6 +64,12 @@ def create_nav_measurement(body):  # noqa: E501
             "roll_deg": pt.get("roll_deg"),
             "pitch_deg": pt.get("pitch_deg"),
             "heave_m": pt.get("heave_m"),
+            "rel_wind_speed_kts": pt.get("rel_wind_speed_kts"),
+            "rel_wind_dir_deg": pt.get("rel_wind_dir_deg"),
+            "true_wind_speed_kts": pt.get("true_wind_speed_kts"),
+            "true_wind_dir_deg": pt.get("true_wind_dir_deg"),
+            "pressure_hpa": pt.get("pressure_hpa"),
+            "humidity_pct": pt.get("humidity_pct"),
             "aux": pt.get("aux"),
         }
         rows.append(row)
