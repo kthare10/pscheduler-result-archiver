@@ -7,7 +7,12 @@
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
-        "target": { "limit": 100, "matchAny": false, "tags": [], "type": "dashboard" },
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
         "type": "dashboard"
       }
     ]
@@ -21,7 +26,12 @@
   "title": "Time-Aligned Environmental Correlation",
   "description": "Stacked time-aligned view of network performance metrics and vessel environmental data for visual correlation analysis.",
   "schemaVersion": 39,
-  "tags": ["navigation", "perfsonar", "correlation", "environmental"],
+  "tags": [
+    "navigation",
+    "perfsonar",
+    "correlation",
+    "environmental"
+  ],
   "time": {
     "from": "now-7d",
     "to": "now"
@@ -32,16 +42,24 @@
   "templating": {
     "list": [
       {
-        "current": { "selected": false, "text": "All", "value": "$__all" },
-        "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-        "definition": "SELECT DISTINCT vessel_id FROM nav_data ORDER BY vessel_id",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "cf1s1g3beeccge"
+        },
+        "definition": "SELECT COALESCE(s.display_name, r.src) AS __text, r.src AS __value\nFROM (SELECT DISTINCT src FROM ps_test_results) r\nLEFT JOIN ships s ON s.src = r.src\nORDER BY 1",
+        "description": "Selects both the network source and, via the ships table, that vessel's navigation data.",
         "hide": 0,
         "includeAll": true,
-        "label": "Vessel",
-        "multi": false,
-        "name": "vessel_id",
+        "label": "Ship",
+        "multi": true,
+        "name": "ship",
         "options": [],
-        "query": "SELECT DISTINCT vessel_id FROM nav_data ORDER BY vessel_id",
+        "query": "SELECT COALESCE(s.display_name, r.src) AS __text, r.src AS __value\nFROM (SELECT DISTINCT src FROM ps_test_results) r\nLEFT JOIN ships s ON s.src = r.src\nORDER BY 1",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -49,37 +67,53 @@
         "type": "query"
       },
       {
-        "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-        "includeAll": false,
-        "label": "Source",
-        "multi": false,
-        "name": "src",
-        "options": [],
-        "query": "SELECT DISTINCT src AS __text, src AS __value FROM ps_test_results ORDER BY 1;",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-        "includeAll": false,
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "cf1s1g3beeccge"
+        },
+        "definition": "SELECT DISTINCT dst AS __text, dst AS __value FROM ps_test_results WHERE src IN (${ship:sqlstring}) ORDER BY 1;",
+        "hide": 0,
+        "includeAll": true,
         "label": "Destination",
-        "multi": false,
+        "multi": true,
         "name": "dst",
         "options": [],
-        "query": "SELECT DISTINCT dst AS __text, dst AS __value FROM ps_test_results WHERE src='${src}' ORDER BY 1;",
+        "query": "SELECT DISTINCT dst AS __text, dst AS __value FROM ps_test_results WHERE src IN (${ship:sqlstring}) ORDER BY 1;",
         "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
         "sort": 1,
         "type": "query"
       },
       {
-        "current": { "text": "both", "value": "both" },
+        "current": {
+          "selected": true,
+          "text": "both",
+          "value": "both"
+        },
         "label": "Direction",
         "name": "direction",
         "options": [
-          { "selected": true, "text": "both", "value": "both" },
-          { "selected": false, "text": "forward", "value": "forward" },
-          { "selected": false, "text": "reverse", "value": "reverse" }
+          {
+            "selected": true,
+            "text": "both",
+            "value": "both"
+          },
+          {
+            "selected": false,
+            "text": "forward",
+            "value": "forward"
+          },
+          {
+            "selected": false,
+            "text": "reverse",
+            "value": "reverse"
+          }
         ],
         "query": "both,forward,reverse",
         "type": "custom"
@@ -92,32 +126,71 @@
       "title": "Throughput (Upload / Download)",
       "description": "iperf3 throughput split by traffic direction, time-aligned with environmental panels below.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "Throughput (Mbps)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 2,
-            "pointSize": 4, "showPoints": "always", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Throughput (Mbps)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "Mbps"
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT $__time(ts), metric_value AS value, concat(coalesce(aux->>'traffic_dir','forward'), ' (', src, ' → ', dst, ')') AS metric FROM ps_test_results WHERE metric_name = 'throughput_mbps' AND $__timeFilter(ts) AND src='${src}' AND dst='${dst}' AND ('${direction}' = 'both' OR coalesce(aux->>'traffic_dir','forward')='${direction}') ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' → ', r.dst, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name = 'throughput_mbps'\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
         }
       ]
     },
@@ -126,32 +199,71 @@
       "title": "Round-Trip Time",
       "description": "RTT measured by ping and tcpping, time-aligned with throughput and environmental panels.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 6 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "RTT (ms)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 2,
-            "pointSize": 4, "showPoints": "always", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "RTT (ms)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "ms"
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT $__time(ts), metric_value AS value, concat(metric_name, ' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric FROM ps_test_results WHERE metric_name IN ('mean_rtt_ms', 'rtt_ms') AND $__timeFilter(ts) AND src='${src}' AND dst='${dst}' AND ('${direction}' = 'both' OR coalesce(aux->>'traffic_dir','forward')='${direction}') ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' → ', r.dst, ' · ', r.metric_name, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name IN ('mean_rtt_ms', 'rtt_ms')\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
         }
       ]
     },
@@ -160,32 +272,71 @@
       "title": "Latency",
       "description": "Average latency measured by owping/halfping, time-aligned with other panels.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 12 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "Latency (ms)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 2,
-            "pointSize": 4, "showPoints": "always", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Latency (ms)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "always",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "ms"
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT $__time(ts), metric_value AS value, concat(metric_name, ' [', coalesce(aux->>'traffic_dir','forward'), ']') AS metric FROM ps_test_results WHERE metric_name = 'avg_latency' AND $__timeFilter(ts) AND src='${src}' AND dst='${dst}' AND ('${direction}' = 'both' OR coalesce(aux->>'traffic_dir','forward')='${direction}') ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' → ', r.dst, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name = 'avg_latency'\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
         }
       ]
     },
@@ -194,32 +345,75 @@
       "title": "Heading",
       "description": "True heading from INHDT, downsampled to 10-min max aggregation.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 18 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "yellow", "mode": "fixed" },
-          "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "Heading (°)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 1,
-            "pointSize": 2, "showPoints": "never", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          "color": {
+            "fixedColor": "yellow",
+            "mode": "fixed"
           },
-          "unit": "degree", "min": 0, "max": 360
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Heading (°)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "degree",
+          "min": 0,
+          "max": 360
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, MAX(heading_true) AS \"Heading (°)\" FROM nav_data WHERE $__timeFilter(ts) AND heading_true IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Heading (°)') AS metric,\n\tMAX(n.heading_true) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.heading_true IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -228,32 +422,73 @@
       "title": "Roll",
       "description": "Vessel roll angle from PSXN,23, downsampled to 10-min max aggregation to highlight peak motion events.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 23 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": true, "axisColorMode": "text",
-            "axisLabel": "Roll (°)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 1,
-            "pointSize": 2, "showPoints": "never", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "Roll (°)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "degree"
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, MAX(ABS(roll_deg)) AS \"Roll (°)\" FROM nav_data WHERE $__timeFilter(ts) AND roll_deg IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Roll (°)') AS metric,\n\tMAX(ABS(n.roll_deg)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.roll_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -262,32 +497,73 @@
       "title": "Pitch",
       "description": "Vessel pitch angle from PSXN,23, downsampled to 10-min max aggregation.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 28 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "purple", "mode": "fixed" },
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": true, "axisColorMode": "text",
-            "axisLabel": "Pitch (°)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 1,
-            "pointSize": 2, "showPoints": "never", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "Pitch (°)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "degree"
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, MAX(ABS(pitch_deg)) AS \"Pitch (°)\" FROM nav_data WHERE $__timeFilter(ts) AND pitch_deg IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Pitch (°)') AS metric,\n\tMAX(ABS(n.pitch_deg)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.pitch_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -296,32 +572,73 @@
       "title": "Heave",
       "description": "Vessel heave from PSXN,23, downsampled to 10-min max aggregation.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 33 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": true, "axisColorMode": "text",
-            "axisLabel": "Heave (m)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 1,
-            "pointSize": 2, "showPoints": "never", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "Heave (m)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "lengthm"
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, MAX(ABS(heave_m)) AS \"Heave (m)\" FROM nav_data WHERE $__timeFilter(ts) AND heave_m IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Heave (m)') AS metric,\n\tMAX(ABS(n.heave_m)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.heave_m IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -330,40 +647,110 @@
       "title": "Wind Speed",
       "description": "Relative and true wind speed from $RELWS/$RELWD, downsampled to 10-min AVG aggregation.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 38 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "green", "mode": "fixed" },
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "Wind Speed (kts)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 1,
-            "pointSize": 2, "showPoints": "never", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Wind Speed (kts)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "knots"
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "True Wind (kts)" },
+            "matcher": {
+              "id": "byRegexp",
+              "options": "True Wind \\(kts\\)$"
+            },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "dark-green", "mode": "fixed" } },
-              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } }
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
             ]
           }
         ]
       },
       "options": {
-        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, AVG(rel_wind_speed_kts) AS \"Relative Wind (kts)\", AVG(true_wind_speed_kts) AS \"True Wind (kts)\" FROM nav_data WHERE $__timeFilter(ts) AND (rel_wind_speed_kts IS NOT NULL OR true_wind_speed_kts IS NOT NULL) AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Relative Wind (kts)') AS metric,\n\tAVG(n.rel_wind_speed_kts) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.rel_wind_speed_kts IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "B",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — True Wind (kts)') AS metric,\n\tAVG(n.true_wind_speed_kts) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.true_wind_speed_kts IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -372,40 +759,112 @@
       "title": "Wind Direction",
       "description": "Relative and true wind direction from $RELWS/$RELWD, downsampled to 10-min AVG aggregation.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 43 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "super-light-blue", "mode": "fixed" },
-          "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "Wind Direction (°)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 1,
-            "pointSize": 2, "showPoints": "never", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          "color": {
+            "fixedColor": "super-light-blue",
+            "mode": "fixed"
           },
-          "unit": "degree", "min": 0, "max": 360
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Wind Direction (°)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "degree",
+          "min": 0,
+          "max": 360
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "True Wind Dir (°)" },
+            "matcher": {
+              "id": "byRegexp",
+              "options": "True Wind Dir \\(°\\)$"
+            },
             "properties": [
-              { "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } },
-              { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } }
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
             ]
           }
         ]
       },
       "options": {
-        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, AVG(rel_wind_dir_deg) AS \"Relative Wind Dir (°)\", AVG(true_wind_dir_deg) AS \"True Wind Dir (°)\" FROM nav_data WHERE $__timeFilter(ts) AND (rel_wind_dir_deg IS NOT NULL OR true_wind_dir_deg IS NOT NULL) AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Relative Wind Dir (°)') AS metric,\n\tAVG(n.rel_wind_dir_deg) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.rel_wind_dir_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "B",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — True Wind Dir (°)') AS metric,\n\tAVG(n.true_wind_dir_deg) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.true_wind_dir_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -414,32 +873,73 @@
       "title": "Barometric Pressure",
       "description": "Barometric pressure from SCS environmental broadcast, downsampled to 10-min AVG.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 48 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "red", "mode": "fixed" },
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
           "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "Pressure (hPa)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 5, "lineInterpolation": "smooth", "lineWidth": 1,
-            "pointSize": 2, "showPoints": "never", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Pressure (hPa)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "pressurehpa"
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, AVG(pressure_hpa) AS \"Pressure (hPa)\" FROM nav_data WHERE $__timeFilter(ts) AND pressure_hpa IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Pressure (hPa)') AS metric,\n\tAVG(n.pressure_hpa) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.pressure_hpa IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -448,32 +948,75 @@
       "title": "Relative Humidity",
       "description": "Relative humidity from SCS environmental broadcast, downsampled to 10-min AVG.",
       "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 53 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "semi-dark-blue", "mode": "fixed" },
-          "custom": {
-            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text",
-            "axisLabel": "Humidity (%)", "axisPlacement": "left",
-            "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 1,
-            "pointSize": 2, "showPoints": "never", "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          "color": {
+            "fixedColor": "semi-dark-blue",
+            "mode": "fixed"
           },
-          "unit": "humidity", "min": 0, "max": 100
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Humidity (%)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "humidity",
+          "min": 0,
+          "max": 100
         },
         "overrides": []
       },
       "options": {
-        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "cf1s1g3beeccge" },
-          "editorMode": "code", "format": "time_series", "rawQuery": true,
-          "rawSql": "SELECT time_bucket('10 minutes', ts) AS time, AVG(humidity_pct) AS \"Humidity (%)\" FROM nav_data WHERE $__timeFilter(ts) AND humidity_pct IS NOT NULL AND ('${vessel_id:raw}' = '$__all' OR vessel_id = '${vessel_id:raw}') GROUP BY 1 ORDER BY 1",
-          "refId": "A"
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Humidity (%)') AS metric,\n\tAVG(n.humidity_pct) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.humidity_pct IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     }

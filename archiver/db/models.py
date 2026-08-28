@@ -102,6 +102,44 @@ class PsTraceHop(Base):
         }
 
 
+class Ship(Base):
+    """
+    Maps a network-measurement source to the vessel it runs on.
+
+    ``ps_test_results.src`` and ``nav_data.vessel_id`` are populated by two
+    independent pipelines (the pScheduler test runner and the NMEA listener),
+    so they use different names for the same ship. Dashboards join through
+    this table to correlate a ship's network metrics with its own navigation
+    data, and to show a human-readable name instead of a hostname.
+
+    ``vessel_id`` stays NULL until that ship's NMEA listener starts reporting.
+    """
+    __tablename__ = "ships"
+
+    # matches ps_test_results.src
+    src: Mapped[str] = mapped_column(Text, primary_key=True)
+    # matches nav_data.vessel_id; NULL while no nav data is flowing
+    vessel_id: Mapped[Optional[str]] = mapped_column(String(64))
+    display_name: Mapped[str] = mapped_column(Text, nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+
+    __table_args__ = (
+        Index("idx_ships_vessel_id", "vessel_id", postgresql_using="btree"),
+    )
+
+    def __repr__(self) -> str:
+        return (f"Ship(src={self.src!r}, vessel_id={self.vessel_id!r}, "
+                f"display_name={self.display_name!r})")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "src": self.src,
+            "vessel_id": self.vessel_id,
+            "display_name": self.display_name,
+            "notes": self.notes,
+        }
+
+
 class NavData(Base):
     """
     Navigation data from NMEA 0183 sentences (GPS position, heading, roll/pitch/heave).
