@@ -300,6 +300,7 @@ class DatabaseManager:
             "rel_wind_speed_kts", "rel_wind_dir_deg",
             "true_wind_speed_kts", "true_wind_dir_deg",
             "pressure_hpa", "humidity_pct",
+            "rain_rate_mmhr", "rain_accum_mm",
         ]
 
         try:

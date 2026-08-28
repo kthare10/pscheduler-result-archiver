@@ -70,6 +70,8 @@ def create_nav_measurement(body):  # noqa: E501
             "true_wind_dir_deg": pt.get("true_wind_dir_deg"),
             "pressure_hpa": pt.get("pressure_hpa"),
             "humidity_pct": pt.get("humidity_pct"),
+            "rain_rate_mmhr": pt.get("rain_rate_mmhr"),
+            "rain_accum_mm": pt.get("rain_accum_mm"),
             "aux": pt.get("aux"),
         }
         rows.append(row)

@@ -823,6 +823,12 @@ components:
         humidity_pct:
           description: Relative humidity percentage (bare value after $RELWD)
           type: number
+        rain_rate_mmhr:
+          description: Precipitation rate in mm/hr (optical rain gauge)
+          type: number
+        rain_accum_mm:
+          description: Precipitation accumulation in mm since 0000 UTC (optical rain gauge, resets daily)
+          type: number
         aux:
           description: Additional raw NMEA data (stored as JSONB)
           type: object

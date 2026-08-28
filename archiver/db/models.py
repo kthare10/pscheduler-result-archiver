@@ -180,6 +180,10 @@ class NavData(Base):
     pressure_hpa: Mapped[Optional[float]] = mapped_column(Float)
     humidity_pct: Mapped[Optional[float]] = mapped_column(Float)
 
+    # Precipitation (optical rain gauge); accumulation resets at 0000 UTC
+    rain_rate_mmhr: Mapped[Optional[float]] = mapped_column(Float)
+    rain_accum_mm: Mapped[Optional[float]] = mapped_column(Float)
+
     # Raw details
     aux: Mapped[Optional[dict]] = mapped_column(JSONB)
 
@@ -215,5 +219,7 @@ class NavData(Base):
             "true_wind_dir_deg": self.true_wind_dir_deg,
             "pressure_hpa": self.pressure_hpa,
             "humidity_pct": self.humidity_pct,
+            "rain_rate_mmhr": self.rain_rate_mmhr,
+            "rain_accum_mm": self.rain_accum_mm,
             "aux": self.aux,
         }
