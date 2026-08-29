@@ -17,6 +17,22 @@ DBM = DatabaseManager.from_config(config=get_globals().config)
 _INDENT = 4
 
 
+def _scrub_nul(v):
+    """Strip NUL characters from strings, recursing into dicts/lists.
+
+    Instruments occasionally NUL-terminate their output (seen on the Sikuliaq
+    optical rain gauge), and PostgreSQL jsonb/text cannot store \\u0000 — one
+    tainted value would fail the entire chunk's upsert.
+    """
+    if isinstance(v, str):
+        return v.replace("\u0000", "")
+    if isinstance(v, dict):
+        return {k: _scrub_nul(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_scrub_nul(x) for x in v]
+    return v
+
+
 def _parse_iso(s):
     if not isinstance(s, str):
         return None
@@ -72,7 +88,7 @@ def create_nav_measurement(body):  # noqa: E501
             "humidity_pct": pt.get("humidity_pct"),
             "rain_rate_mmhr": pt.get("rain_rate_mmhr"),
             "rain_accum_mm": pt.get("rain_accum_mm"),
-            "aux": pt.get("aux"),
+            "aux": _scrub_nul(pt.get("aux")),
         }
         rows.append(row)
 
