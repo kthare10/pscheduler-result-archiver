@@ -190,7 +190,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' → ', r.dst, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name = 'throughput_mbps'\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
+          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' \u2192 ', r.dst, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name = 'throughput_mbps'\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
         }
       ]
     },
@@ -263,7 +263,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' → ', r.dst, ' · ', r.metric_name, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name IN ('mean_rtt_ms', 'rtt_ms')\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
+          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' \u2192 ', r.dst, ' \u00b7 ', r.metric_name, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name IN ('mean_rtt_ms', 'rtt_ms')\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
         }
       ]
     },
@@ -336,7 +336,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' → ', r.dst, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name = 'avg_latency'\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
+          "rawSql": "SELECT\n\t$__time(r.ts),\n\tconcat(COALESCE(s.display_name, r.src), ' \u2192 ', r.dst, ' [', coalesce(r.aux->>'traffic_dir','forward'), ']') AS metric,\n\tr.metric_value AS value\nFROM ps_test_results r\nLEFT JOIN ships s ON s.src = r.src\nWHERE r.metric_name = 'avg_latency'\n\tAND $__timeFilter(r.ts)\n\tAND r.src IN (${ship:sqlstring})\n\tAND r.dst IN (${dst:sqlstring})\n\tAND ('${direction}' = 'both' OR coalesce(r.aux->>'traffic_dir','forward')='${direction}')\nORDER BY 1"
         }
       ]
     },
@@ -365,7 +365,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Heading (°)",
+            "axisLabel": "Heading (\u00b0)",
             "axisPlacement": "left",
             "drawStyle": "line",
             "fillOpacity": 5,
@@ -413,7 +413,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Heading (°)') AS metric,\n\tMAX(n.heading_true) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.heading_true IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Heading (\u00b0)') AS metric,\n\tMAX(n.heading_true) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.heading_true IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -442,7 +442,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": true,
             "axisColorMode": "text",
-            "axisLabel": "Roll (°)",
+            "axisLabel": "Roll (\u00b0)",
             "axisPlacement": "left",
             "drawStyle": "line",
             "fillOpacity": 10,
@@ -488,7 +488,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Roll (°)') AS metric,\n\tMAX(ABS(n.roll_deg)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.roll_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Roll (\u00b0)') AS metric,\n\tMAX(ABS(n.roll_deg)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.roll_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -517,7 +517,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": true,
             "axisColorMode": "text",
-            "axisLabel": "Pitch (°)",
+            "axisLabel": "Pitch (\u00b0)",
             "axisPlacement": "left",
             "drawStyle": "line",
             "fillOpacity": 10,
@@ -563,7 +563,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Pitch (°)') AS metric,\n\tMAX(ABS(n.pitch_deg)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.pitch_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Pitch (\u00b0)') AS metric,\n\tMAX(ABS(n.pitch_deg)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.pitch_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -638,7 +638,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Heave (m)') AS metric,\n\tMAX(ABS(n.heave_m)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.heave_m IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Heave (m)') AS metric,\n\tMAX(ABS(n.heave_m)) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.heave_m IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -739,7 +739,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Relative Wind (kts)') AS metric,\n\tAVG(n.rel_wind_speed_kts) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.rel_wind_speed_kts IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Relative Wind (kts)') AS metric,\n\tAVG(n.rel_wind_speed_kts) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.rel_wind_speed_kts IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         },
         {
           "datasource": {
@@ -750,7 +750,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "B",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — True Wind (kts)') AS metric,\n\tAVG(n.true_wind_speed_kts) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.true_wind_speed_kts IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 True Wind (kts)') AS metric,\n\tAVG(n.true_wind_speed_kts) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.true_wind_speed_kts IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -779,7 +779,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Wind Direction (°)",
+            "axisLabel": "Wind Direction (\u00b0)",
             "axisPlacement": "left",
             "drawStyle": "line",
             "fillOpacity": 5,
@@ -804,7 +804,7 @@
           {
             "matcher": {
               "id": "byRegexp",
-              "options": "True Wind Dir \\(°\\)$"
+              "options": "True Wind Dir \\(\u00b0\\)$"
             },
             "properties": [
               {
@@ -853,7 +853,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Relative Wind Dir (°)') AS metric,\n\tAVG(n.rel_wind_dir_deg) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.rel_wind_dir_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Relative Wind Dir (\u00b0)') AS metric,\n\tAVG(n.rel_wind_dir_deg) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.rel_wind_dir_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         },
         {
           "datasource": {
@@ -864,7 +864,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "B",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — True Wind Dir (°)') AS metric,\n\tAVG(n.true_wind_dir_deg) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.true_wind_dir_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 True Wind Dir (\u00b0)') AS metric,\n\tAVG(n.true_wind_dir_deg) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.true_wind_dir_deg IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -939,7 +939,7 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Pressure (hPa)') AS metric,\n\tAVG(n.pressure_hpa) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.pressure_hpa IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Pressure (hPa)') AS metric,\n\tAVG(n.pressure_hpa) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.pressure_hpa IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -1016,7 +1016,157 @@
           "format": "time_series",
           "rawQuery": true,
           "refId": "A",
-          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' — Humidity (%)') AS metric,\n\tAVG(n.humidity_pct) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.humidity_pct IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Humidity (%)') AS metric,\n\tAVG(n.humidity_pct) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.humidity_pct IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Precipitation Rate",
+      "description": "Optical rain gauge precipitation rate, downsampled to 10-min AVG. Gaps mean the gauge reported no rain (dry lines are not parsed).",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 58
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-blue",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Rain rate (mm/h)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "suffix:mm/h"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Rain rate (mm/h)') AS metric,\n\tAVG(n.rain_rate_mmhr) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.rain_rate_mmhr IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Rain Accumulation (since 0000 UTC)",
+      "description": "Optical rain gauge accumulation since 0000 UTC (resets daily), 10-min MAX.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "cf1s1g3beeccge"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 63
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-green",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Accumulation (mm)",
+            "axisPlacement": "left",
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "lengthmm"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cf1s1g3beeccge"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "refId": "A",
+          "rawSql": "SELECT\n\ttime_bucket('10 minutes', n.ts) AS time,\n\tconcat(COALESCE(s.display_name, n.vessel_id), ' \u2014 Rain since 0000 UTC (mm)') AS metric,\n\tMAX(n.rain_accum_mm) AS value\nFROM nav_data n\nLEFT JOIN ships s ON s.vessel_id = n.vessel_id\nWHERE $__timeFilter(n.ts)\n\tAND n.vessel_id IN (SELECT vessel_id FROM ships WHERE src IN (${ship:sqlstring}) AND vessel_id IS NOT NULL)\n\tAND n.rain_accum_mm IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     }
