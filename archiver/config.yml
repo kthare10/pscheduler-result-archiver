@@ -6,7 +6,7 @@ logging:
   log-directory: logs
   log-file: archiver.log
   metrics-log-file: metrics.log
-  log-level: DEBUG
+  log-level: INFO
   log-retain: 5
   log-size: 5000000
   logger: archiver

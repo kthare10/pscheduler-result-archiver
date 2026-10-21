@@ -1,3 +1,11 @@
+# Cap container stdout logs; Docker's json-file default is unbounded and
+# filled a 24G ship VM (archiver at DEBUG alone wrote 4.5G).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "3"
+
 services:
   timescaledb:
     image: timescale/timescaledb:latest-pg16
@@ -15,6 +23,7 @@ services:
       timeout: 5s
       retries: 10
     restart: always
+    logging: *default-logging
 
   grafana:
     image: grafana/grafana:latest
@@ -46,6 +55,7 @@ services:
       # Dashboards provisioning configuration file
       - ./provisioning/dashboards:/etc/grafana/provisioning/dashboards
     restart: always
+    logging: *default-logging
 
   archiver:
     build:
@@ -56,6 +66,7 @@ services:
     depends_on:
       - grafana
     restart: always
+    logging: *default-logging
     #ports: ["3500:3500"]
     environment:
       - APP_CONFIG_PATH=/etc/archiver/config/config.yml
@@ -73,6 +84,7 @@ services:
       - RENDERING_MODE=default
       - RENDERING_CLUSTERING_MODE=default
     restart: always
+    logging: *default-logging
 
   nginx:
     image: library/nginx:1
@@ -86,6 +98,7 @@ services:
       - ./certs/privkey.pem:/etc/ssl/private.pem
       - /opt/data/production/logs/nginx/archiver:/var/log/nginx
     restart: always
+    logging: *default-logging
 
 volumes:
   grafana_data: {}
